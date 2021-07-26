@@ -1,0 +1,9 @@
+version: '3.5'
+
+services:
+    web:
+        container_name: gpt-server
+        build: .
+        command: python src/entrypoint.py
+        ports:
+            - "8080:8080"
