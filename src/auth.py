@@ -23,5 +23,4 @@ class Auth():
         return key
     
     def delete_key(self, key):
-        key = Query()
-        self.db.remove(key.key == self.hash(key))
+        self.db.remove(self.private_key.key == self.hash(key))

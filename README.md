@@ -23,10 +23,18 @@ Sukima is a ready-to-deploy container that implements a REST API for Language Mo
 
 ### Example API Usage
 ```python
-import requests
+import json, requests
+
+with open("config.json") as f:
+    config = json.load(f)
+
+# Get an API Key
+r = requests.get("http://localhost:8080/v1/create_key", headers={"Authorization": config["auth_admin_token"]})
+print(r.json())
+key = r.json()["key"]
 
 # List currently available models
-r = requests.get("http://localhost:8080/v1/models")
+r = requests.get("http://localhost:8080/v1/models", headers={"Authorization": key})
 for i in r.json()["models"]:
   print(i)
 
@@ -36,7 +44,7 @@ request_body_model_init = {
     "model": "gpt-neo-125M"
 }
 
-res = requests.post('http://localhost:8080/v1/load', json=request_body_model_init)
+res = requests.post('http://localhost:8080/v1/load', json=request_body_model_init, headers={"Authorization": key})
 print(res.json())
 
 
@@ -51,13 +59,21 @@ request_body = {
     "repetition_penalty": 3.0
 }
 
-res = requests.post('http://localhost:8080/v1/generate', json=request_body)
+res = requests.post('http://localhost:8080/v1/generate', json=request_body, headers={"Authorization": key})
 print(res.json()['completion']['text'], '\n')
 
 
 # And finally, delete the model that we have allocated.
-res = requests.post('http://localhost:8080/v1/delete', json=request_body_model_init)
+res = requests.post('http://localhost:8080/v1/delete', json=request_body_model_init, headers={"Authorization": key})
 print(res.json())
+
+
+# Then, delete the API key.
+request_body_delete_key = {
+    "key": key
+}
+r = requests.post('http://localhost:8080/v1/delete_key', json=request_body_delete_key, headers={"Authorization": config["auth_admin_token"]})
+print(r.json())
 ```
 
 ### License

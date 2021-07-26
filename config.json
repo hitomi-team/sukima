@@ -3,5 +3,5 @@
     "port": 8080,
     "auth_enable": true,
     "auth_admin_token": "admin",
-    "auth_db": "auth.json"
+    "auth_db": "db.json"
 }

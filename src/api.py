@@ -50,7 +50,7 @@ class API:
     def create_key(self):
         if self.config["auth_enable"] == False:
             return Util.error(None, "Authentication disabled")
-        return jsonify(key_dict = {
+        return jsonify({
             "key": self.auth.create_key()
         })
     
@@ -141,8 +141,8 @@ class API:
         return Util.error(None, "Model not found")
     
     def run(self):
-        self.app.add_url_rule('/{}/create_key'.format(self.version), self.create_key, methods=['GET'])
-        self.app.add_url_rule('/{}/delete_key'.format(self.version), self.delete_key, methods=['POST'])
+        self.app.add_url_rule('/{}/create_key'.format(self.version), 'create_key', self.create_key, methods=['GET'])
+        self.app.add_url_rule('/{}/delete_key'.format(self.version), 'delete_key', self.delete_key, methods=['POST'])
         self.app.add_url_rule('/{}/models'.format(self.version), view_func=self.get_model_list, methods=['GET'])
         self.app.add_url_rule('/{}/generate'.format(self.version), view_func=self.generate, methods=['POST'])
         self.app.add_url_rule('/{}/load'.format(self.version), view_func=self.load_model, methods=['POST'])
