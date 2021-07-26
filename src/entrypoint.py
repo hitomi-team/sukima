@@ -5,9 +5,11 @@ import json
 from server import Server
 
 def entry():
-    server = Server()
-    server.run(host='0.0.0.0', port=8080)
+    with open("config.json") as f:
+        config = json.load(f)
+    server = Server(config)
+    server.run(host=config["host"], port=config["port"])
     return 0
 
 if __name__ == '__main__':
-    entry()
+    sys.exit(entry())

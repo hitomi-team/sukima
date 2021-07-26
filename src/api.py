@@ -2,17 +2,38 @@ from flask import jsonify, request
 from gptauto import GPTAuto
 from gptneo import GPTNeo
 from util import Util
+from functools import wraps
 
 class API:
-    def __init__(self, version='v1', app=None):
+    def __init__(self, version='v1', app=None, config=None):
         self.app = app
         self.version = version
+        self.config = config
         self.models = []
     
+    # Auth
+    def verify_token(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            self = args[0]
+            token = None
+
+            if self.config["enable_auth"] == True:
+                if 'Authorization' in request.headers:
+                    token = request.headers['Authorization']
+                else:
+                    return Util.error(None, "No token header")
+                if token != self.config["master_token"]:
+                    return Util.error(None, "Invalid token")
+            
+            return f(*args, **kwargs)
+        return decorated_function
+
     # API Functions
 
     # Get models
     # /v1/models
+    @verify_token
     def get_model_list(self):
         model_dict = {
             "models": {
@@ -26,6 +47,7 @@ class API:
     
     # Load model
     # /v1/load
+    @verify_token
     def load_model(self):
         request_body = request.json
         if request_body == None:
@@ -47,6 +69,7 @@ class API:
     
     # Delete model
     # /v1/delete
+    @verify_token
     def delete_model(self):
         request_body = request.json
         if request_body == None:
@@ -61,6 +84,7 @@ class API:
 
     # Generate from model
     # /v1/generate
+    @verify_token
     def generate(self):
         request_body = request.json
         if request_body == None:

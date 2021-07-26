@@ -1,0 +1,6 @@
+{
+    "host": "localhost",
+    "port": 8080,
+    "enable_auth": false,
+    "master_token": ""
+}

@@ -5,9 +5,10 @@ from api import API
 from util import Util
 
 class Server:
-    def __init__(self):
+    def __init__(self, config):
         self.app = Flask(__name__)
-        self.api = API(version='v1', app=self.app)
+        self.config = config
+        self.api = API(version='v1', app=self.app, config=config)
     
     def page_not_found(self, e):
         return jsonify(Util.error(404, "Invalid URL"))
