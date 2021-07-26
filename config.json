@@ -1,6 +1,7 @@
 {
     "host": "localhost",
     "port": 8080,
-    "enable_auth": false,
-    "master_token": ""
+    "auth_enable": true,
+    "auth_admin_token": "admin",
+    "auth_db": "auth.json"
 }
