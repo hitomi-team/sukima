@@ -42,7 +42,7 @@ print(res.json())
 # Generate from the model!
 # For generation, we must fill every generation parameter in this request body.
 request_body = {
-    "model": model,
+    "model": "gpt-neo-125M",
     "prompt": "Sukima is a ready-to-deploy container that serves a REST API for Language Models. Not only does",
     "generate_num": 32,
     "temperature": 0.1,
@@ -50,12 +50,12 @@ request_body = {
     "repetition_penalty": 3.0
 }
 
-res = requests.post('http://localhost/v1/generate', json=request_body)
-print(res.json()['completion]['text'], '\n')
+res = requests.post('http://localhost:8080/v1/generate', json=request_body)
+print(res.json()['completion']['text'], '\n')
 
 
 # And finally, delete the model that we have allocated.
-res = requests.post('http://localhost:8080/v1/load', json=request_body_model_init)
+res = requests.post('http://localhost:8080/v1/delete', json=request_body_model_init)
 print(res.json())
 ```
 
