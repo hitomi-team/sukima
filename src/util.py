@@ -1,3 +1,4 @@
+from flask import jsonify
 import json
 import time
 
@@ -5,24 +6,33 @@ class Util():
     def __init__(self):
         self.start_time = time.time()
     
+    # encode success as json
+    def success(message):
+        return jsonify({
+            "success": {
+                "time": int(time.time()),
+                "message": message
+            }
+        })
+
     # encode error as json
     def error(code, message):
-        return {
+        return jsonify({
             "error": {
                 "time": int(time.time()),
                 "code": code,
                 "message": message
             }
-        }
+        })
     
     # encode text ocmpletion as json
-    def completion(text,):
-        return {
+    def completion(text):
+        return jsonify({
             "completion": {
                 "text": text,
                 "time": int(time.time())
             }
-        }
+        })
     
     # Logs output to the console with timestamp from self.start_time
     # Format: [timestamp] module: message

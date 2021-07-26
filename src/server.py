@@ -8,7 +8,6 @@ class Server:
     def __init__(self):
         self.app = Flask(__name__)
         self.api = API(version='v1', app=self.app)
-        self.api.load_models(models=[GPTNeo(model_name="gpt-neo-125M")])
     
     def page_not_found(self, e):
         return jsonify(Util.error(404, "Invalid URL"))
