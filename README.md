@@ -16,7 +16,8 @@ Sukima is a ready-to-deploy container that implements a REST API for Language Mo
 
 ### Todo
 - HTTPS Support
-- Authentication
+- User Authentication
+- Rate Limiting
 - Support for models other than GPT-Neo.
 - Support for other Language Modeling tasks such as Sentiment Analysis and Named Entity Recognition.
 
