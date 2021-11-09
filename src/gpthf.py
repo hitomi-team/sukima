@@ -55,7 +55,8 @@ class GPTHF(GPTAuto):
                 if "max_length" in args["gen_args"]:
                         if not isinstance(args["gen_args"]["max_length"], int) or args["gen_args"]["max_length"] < 0:
                                 raise TypeError("max_length must be a positive integer")
-                        stopping_criterion.append(MaxLengthCriteria(args["gen_args"]["max_length"]))
+                        prompt_length = len(self.tokenizer.encode(args["prompt"]))
+                        stopping_criterion.append(MaxLengthCriteria(args["gen_args"]["max_length"] + prompt_length))
                 if "max_time" in args["gen_args"]:
                         if not isinstance(args["gen_args"]["max_time"], float) or args["gen_args"]["max_time"] < 0.0:
                                 raise TypeError("max_time must be a positive float")
