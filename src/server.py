@@ -1,6 +1,4 @@
-from gptneo import GPTNeo
-
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify
 from api import API
 from util import Util
 

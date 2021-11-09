@@ -1,6 +1,6 @@
 from flask import jsonify, request
 from gptauto import GPTAuto
-from gptneo import GPTNeo
+from gpthf import GPTHF
 from util import Util
 from functools import wraps
 from auth import Auth
@@ -96,13 +96,18 @@ class API:
                 if m.model_name == request_body["model"]:
                     return Util.error(None, "Model already loaded")
         
-        # Load GPT-Neo model
-        if request_body["model"].startswith("gpt-neo"):
-            model = GPTNeo(request_body["model"])
+        if "model" not in request_body:
+            return Util.error(None, "No model specified")
+
+        try:
+            parallel=False
+            if "parallel" in request_body:
+                parallel = request_body["parallel"]
+            model = GPTHF(model_name=request_body["model"], parallelize=parallel)
             self.models.append(model)
             return Util.success("Loaded model")
-        
-        return Util.error(None, "Unsupported model")
+        except:
+            return Util.error(None, "Unsupported model")
     
     # Delete model
     # /v1/delete
@@ -130,11 +135,9 @@ class API:
         for m in self.models:
             if m.model_name == request_body["model"]:
                 try:
-                    return Util.completion(m.generate(prompt=request_body["prompt"],
-                        generate_num=request_body["generate_num"],
-                        temperature=request_body["temperature"],
-                        top_p=request_body["top_p"],
-                        repetition_penalty=request_body["repetition_penalty"]))
+                    if "args" not in request_body:
+                        return Util.error(None, "No generation arguments specified")
+                    return Util.completion(m.generate(request_body["args"]))
                 except Exception as e:
                     return Util.error(None, 'Invalid request body!')
 

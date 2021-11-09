@@ -12,7 +12,7 @@ def sig_handler(signum, frame):
     cleanup_auth(key)
     sys.exit(0)
 
-model = "gpt-neo-125M"
+model = 'hakurei/gpt-j-random-tinier'
 
 request_body_model_init = {
     "model": model
@@ -20,11 +20,32 @@ request_body_model_init = {
 
 request_body = {
     "model": model,
-    "prompt": "The touhou project",
-    "generate_num": 32,
-    "temperature": 0.1,
-    "top_p": 1.0,
-    "repetition_penalty": 3.0
+    "args": {
+        "prompt": "west",
+        "sample_args": {
+            "temp": 0.5,
+            "top_p": 1.0,
+            "top_k": 140,
+            "tfs": 0.9,
+            "rep_p": 3.65,
+            "rep_p_range": 2048,
+            "rep_p_slope": 0.18,
+            "bad_words": [
+            "nword",
+            "wow"
+            ],
+            "bias_words": [
+            "fuck",
+            "aahhhh",
+            "oops!"
+            ],
+            "bias": 2.0
+        },
+        "gen_args": {
+            "max_length": 10,
+            "max_time": 100.0
+        }
+    }
 }
 
 def auth():
