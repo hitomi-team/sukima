@@ -17,7 +17,6 @@ Sukima is a ready-to-deploy container that implements a REST API for Language Mo
 ### Todo
 - HTTPS Support
 - Rate Limiting
-- Support for models other than GPT-Neo.
 - Support for other Language Modeling tasks such as Sentiment Analysis and Named Entity Recognition.
 
 ### Example API Usage
@@ -37,35 +36,38 @@ r = requests.get("http://localhost:8080/v1/models", headers={"Authorization": ke
 for i in r.json()["models"]:
   print(i)
 
-
 # Load the model! In order to do this, we use a simple request body.
-request_body_model_init = {
-    "model": "gpt-neo-125M"
-}
-
+request_body_model_init = {"model": "EleutherAI/gpt-neo-125M"}
 res = requests.post('http://localhost:8080/v1/load', json=request_body_model_init, headers={"Authorization": key})
 print(res.json())
-
 
 # Generate from the model!
 # For generation, we must fill every generation parameter in this request body.
 request_body = {
-    "model": "gpt-neo-125M",
-    "prompt": "Sukima is a ready-to-deploy container that serves a REST API for Language Models. Not only does",
-    "generate_num": 32,
-    "temperature": 0.1,
-    "top_p": 1.0,
-    "repetition_penalty": 3.0
+    "model": "EleutherAI/gpt-neo-125M",
+    "args": {
+        "prompt": "Sukima is a ready-to-deploy container that serves a REST API for Language Models. Not only does",
+        "sample_args": {
+            "temp": 0.5,
+            "tfs": 0.9,
+            "rep_p": 3.65,
+            "bias_words": [
+                "GPT is awesome!"
+            ],
+            "bias": 2.0
+        },
+        "gen_args": {
+            "max_length": 40
+        }
+    }
 }
 
 res = requests.post('http://localhost:8080/v1/generate', json=request_body, headers={"Authorization": key})
-print(res.json()['completion']['text'], '\n')
-
+print(res.json()['completion']['text'])
 
 # And finally, delete the model that we have allocated.
 res = requests.post('http://localhost:8080/v1/delete', json=request_body_model_init, headers={"Authorization": key})
 print(res.json())
-
 
 # Then, delete the API key.
 request_body_delete_key = {
