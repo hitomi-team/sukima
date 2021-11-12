@@ -18,6 +18,7 @@ Sukima is a ready-to-deploy container that implements a REST API for Language Mo
 - HTTPS Support
 - Rate Limiting
 - Support for other Language Modeling tasks such as Sentiment Analysis and Named Entity Recognition.
+- Soft Prompt tuning endpoint
 
 ### Example API Usage
 ```python
@@ -42,7 +43,6 @@ res = requests.post('http://localhost:8080/v1/load', json=request_body_model_ini
 print(res.json())
 
 # Generate from the model!
-# For generation, we must fill every generation parameter in this request body.
 request_body = {
     "model": "EleutherAI/gpt-neo-125M",
     "args": {
@@ -70,9 +70,7 @@ res = requests.post('http://localhost:8080/v1/delete', json=request_body_model_i
 print(res.json())
 
 # Then, delete the API key.
-request_body_delete_key = {
-    "key": key
-}
+request_body_delete_key = { "key": key }
 r = requests.post('http://localhost:8080/v1/delete_key', json=request_body_delete_key, headers={"Authorization": config["auth_admin_token"]})
 print(r.json())
 ```
