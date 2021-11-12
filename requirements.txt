@@ -1,4 +1,5 @@
 Flask
+pyopenssl
 tinydb
 transformers
 torch
