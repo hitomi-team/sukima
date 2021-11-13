@@ -18,17 +18,17 @@ models = []
 
 # Oh jeez that's a lot of models
 class ModelGenArgs(BaseModel):
-    max_length: float
+    max_length: int
     max_time: Optional[float] = None
 
 
 class ModelSampleArgs(BaseModel):
     temp: float
     top_p: Optional[float] = None
-    top_k: Optional[float] = None
+    top_k: Optional[int] = None
     tfs: Optional[float] = None
     rep_p: float
-    rep_p_range: Optional[float] = None
+    rep_p_range: Optional[int] = None
     rep_p_slope: Optional[float] = None
     bad_words: List[str] = []
     bias_words: List[str] = []
@@ -47,25 +47,28 @@ class ModelRequest(BaseModel):
     args: Optional[ModelReqArgs] = None
 
 
+class AuthRequest(BaseModel):
+    key: str
+
+
 app = FastAPI()
 
 
-@app.get(f"/{version}/create_key", tags=["auth"])
+@app.get(f"/{version}/create_key", tags=["auth"], response_model=AuthRequest)
 async def create_key():
     if not config["auth_enable"]:
         return Util.error(None, "Authentication disabled")
-    return {
-        "key": auth.create_key()
-    }
+    return {"key": auth.create_key()}
 
 
 @app.post(f"/{version}/delete_key", tags=["auth"])
-async def delete_key(request: ModelRequest):
-    if config["auth_enable"] == False:
+async def delete_key(request: AuthRequest):
+    if not config["auth_enable"]:
         return Util.error(None, "Authentication disabled")
 
-    auth.delete_key(request["key"])
-    return Util.success("Key deleted")
+    # No success or failure indicators.
+    auth.delete_key(request.key)
+    return Util.success("Key delete request processed")
 
 
 # Get models
@@ -95,6 +98,7 @@ async def load_model(request: ModelRequest):
     except:
         return Util.error(None, "Unsupported model")
 
+
 # Delete model
 @app.post(f"/{version}/delete", tags=["model"])
 async def delete_model(request: ModelRequest):
@@ -104,6 +108,7 @@ async def delete_model(request: ModelRequest):
             return Util.success("Deleted model")
     return Util.error(None, "Model not found")
 
+
 # Generate from model
 @app.post(f"/{version}/generate", tags=["model"])
 async def generate(request: ModelRequest):
@@ -112,8 +117,8 @@ async def generate(request: ModelRequest):
             try:
                 if request.args is None:
                     return Util.error(None, "No generation arguments specified")
-                return Util.completion(m.generate(dict(request.args)))
+                return Util.completion(m.generate(request.args.dict()))
             except Exception as e:
-                return Util.error(None, 'Invalid request body!')
+                return Util.error(None, f'Invalid request body! \n{e}')
 
     return Util.error(None, "Model not found")
