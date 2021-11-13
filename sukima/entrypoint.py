@@ -2,13 +2,12 @@ import os
 import sys
 import json
 
-from server import Server
+import uvicorn
 
 def entry():
     with open("config.json") as f:
         config = json.load(f)
-    server = Server(config)
-    server.run(host=config["host"], port=config["port"])
+    uvicorn.run("server:app", host=config["host"], port=config["port"], reload=True) # for debugging
     return 0
 
 if __name__ == '__main__':
