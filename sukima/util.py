@@ -1,4 +1,4 @@
-from flask import jsonify
+from fastapi.encoders import jsonable_encoder
 import json
 import time
 
@@ -8,7 +8,7 @@ class Util():
     
     # encode success as json
     def success(message):
-        return jsonify({
+        return jsonable_encoder({
             "success": {
                 "time": int(time.time()),
                 "message": message
@@ -17,7 +17,7 @@ class Util():
 
     # encode error as json
     def error(code, message):
-        return jsonify({
+        return jsonable_encoder({
             "error": {
                 "time": int(time.time()),
                 "code": code,
@@ -27,7 +27,7 @@ class Util():
     
     # encode text ocmpletion as json
     def completion(text):
-        return jsonify({
+        return jsonable_encoder({
             "completion": {
                 "text": text,
                 "time": int(time.time())
