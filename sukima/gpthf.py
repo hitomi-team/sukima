@@ -62,7 +62,7 @@ class GPTHF(GPTAuto):
                 self.device = device
                 if sharded:
                         model_cfg = AutoConfig.from_pretrained(model_name)
-                        self.model = AutoModelForCausalLM.from_pretrained(pretrained_model_name_or_path=None, config=model_cfg, state_dict=Checkpoint(model_name, self.device))
+                        self.model = AutoModelForCausalLM.from_pretrained(pretrained_model_name_or_path=None, config=model_cfg, state_dict=Checkpoint(model_name, self.device), torch_dtype=torch.float16).to(self.device)
                 else:
                         self.model = AutoModelForCausalLM.from_pretrained(model_name).to(self.device)
                 self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -70,9 +70,6 @@ class GPTHF(GPTAuto):
                 if parallelize:
                         self.model.parallelize()
 
-        # gen_args, generation arguments [ max_length, max_time ]
-        # sample_args, sampling arguments [ temp:float, top_p:float, top_k:int, tfs:float, rep_p:float, rep_p_range:int, rep_p_slope:float, bad_words:list, bias_words:list, bias:float ]
-        # Example format { "prompt": "A dog crossed the street", "gen_args": {"max_length":40}, "sample_args": {"temp": 0.53, "tfs": 0.993, "rep_p": 3.65, "bias_words": ["wow", "ok"], "bias": 2.3} }
         def generate(self, args):
                 logits_warpers = []
                 logits_processors = []
