@@ -59,7 +59,7 @@ async def create_key():
     }
 
 
-@app.get(f"/{version}/delete_key", tags=["auth"])
+@app.post(f"/{version}/delete_key", tags=["auth"])
 async def delete_key(request: ModelRequest):
     if config["auth_enable"] == False:
         return Util.error(None, "Authentication disabled")
@@ -81,7 +81,7 @@ async def get_model_list():
 
 
 # Load model
-@app.get(f"/{version}/load", tags=["model"])
+@app.post(f"/{version}/load", tags=["model"])
 async def load_model(request: ModelRequest):
     # Check that model exists
     if models is not None:
@@ -96,7 +96,7 @@ async def load_model(request: ModelRequest):
         return Util.error(None, "Unsupported model")
 
 # Delete model
-@app.get(f"/{version}/delete", tags=["model"])
+@app.post(f"/{version}/delete", tags=["model"])
 async def delete_model(request: ModelRequest):
     for m in models:
         if m.model_name == request.model:
@@ -105,7 +105,7 @@ async def delete_model(request: ModelRequest):
     return Util.error(None, "Model not found")
 
 # Generate from model
-@app.get(f"/{version}/generate", tags=["model"])
+@app.post(f"/{version}/generate", tags=["model"])
 async def generate(request: ModelRequest):
     for m in models:
         if m.model_name == request.model:
