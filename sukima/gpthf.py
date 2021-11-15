@@ -62,14 +62,15 @@ class GPTHF(GPTAuto):
                 self.device = device
                 if sharded:
                         model_cfg = AutoConfig.from_pretrained(model_name)
-                        self.model = AutoModelForCausalLM.from_pretrained(pretrained_model_name_or_path=None, config=model_cfg, state_dict=Checkpoint(model_name, self.device), torch_dtype=torch.float16).to(self.device)
+                        self.model = AutoModelForCausalLM.from_pretrained(pretrained_model_name_or_path=None, config=model_cfg, state_dict=Checkpoint(model_name, self.device), torch_dtype=torch.float16).eval().to(self.device)
                 else:
                         self.model = AutoModelForCausalLM.from_pretrained(model_name).to(self.device)
                 self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
                 if parallelize:
                         self.model.parallelize()
-
+                        
+        @torch.inference_mode()
         def generate(self, args):
                 logits_warpers = []
                 logits_processors = []
