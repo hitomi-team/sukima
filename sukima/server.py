@@ -23,28 +23,29 @@ class ModelGenArgs(BaseModel):
 
 
 class ModelSampleArgs(BaseModel):
-    temp: float
+    temp: Optional[float] = None
     top_p: Optional[float] = None
     top_k: Optional[int] = None
     tfs: Optional[float] = None
-    rep_p: float
+    rep_p: Optional[float] = None
     rep_p_range: Optional[int] = None
     rep_p_slope: Optional[float] = None
-    bad_words: List[str] = []
-    bias_words: List[str] = []
-    bias: float
+    bad_words: List[str] = None
+    bias_words: List[str] = None
+    bias: Optional[float] = None
 
 
-class ModelReqArgs(BaseModel):
+class ModelGenRequest(BaseModel):
+    model: str
     prompt: str
     sample_args: ModelSampleArgs
     gen_args: ModelGenArgs
 
 
-class ModelRequest(BaseModel):
+class ModelLoadRequest(BaseModel):
     model: str
     parallel: Optional[bool] = False
-    args: Optional[ModelReqArgs] = None
+    sharded: Optional[bool] = False
 
 
 class AuthRequest(BaseModel):
@@ -85,7 +86,7 @@ async def get_model_list():
 
 # Load model
 @app.post(f"/{version}/load", tags=["model"])
-async def load_model(request: ModelRequest):
+async def load_model(request: ModelLoadRequest):
     # Check that model exists
     if models is not None:
         for m in models:
@@ -101,7 +102,7 @@ async def load_model(request: ModelRequest):
 
 # Delete model
 @app.post(f"/{version}/delete", tags=["model"])
-async def delete_model(request: ModelRequest):
+async def delete_model(request: ModelLoadRequest):
     for m in models:
         if m.model_name == request.model:
             models.remove(m)
@@ -111,13 +112,11 @@ async def delete_model(request: ModelRequest):
 
 # Generate from model
 @app.post(f"/{version}/generate", tags=["model"])
-async def generate(request: ModelRequest):
+async def generate(request: ModelGenRequest):
     for m in models:
         if m.model_name == request.model:
             try:
-                if request.args is None:
-                    return Util.error(None, "No generation arguments specified")
-                return Util.completion(m.generate(request.args.dict()))
+                return Util.completion(m.generate(request.dict()))
             except Exception as e:
                 return Util.error(None, f'Invalid request body! \n{e}')
 
