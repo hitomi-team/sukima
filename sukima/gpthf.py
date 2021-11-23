@@ -1,6 +1,6 @@
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig
-from app.sukima.gptauto import GPTAuto
+from gptauto import GPTAuto
 
 from transformers import (
         LogitsProcessorList,
@@ -15,7 +15,7 @@ from transformers import (
         MaxLengthCriteria
 )
 
-from app.sukima.warpers import (
+from warpers import (
         TailFreeSamplingLogitsWarper,
         RepetitionPenaltyLogitsProcessor,
         PhraseBiasProcessor

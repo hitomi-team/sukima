@@ -1,10 +1,5 @@
 fastapi[all]
-uvicorn[standard]
-python-jose[cryptography]
-python-multipart
-sqlalchemy
-passlib
-bcrypt
 pyopenssl
 tinydb
 transformers
+torch
