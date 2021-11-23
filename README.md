@@ -1,7 +1,7 @@
 ![logo](banner.png)
 
 ## Overview
-Sukima is a ready-to-deploy container that implements a REST API for Language Models.
+Sukima is a ready-to-deploy container that implements a REST API for Language Models designed with the specific purpose of easy deployment and scalability.
 
 ### Curent API Functions
 - **models** : Fetch a list of ready-to-use Language Models for inference.
