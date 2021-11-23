@@ -19,8 +19,8 @@ SECRET_KEY = "e846cf2582aa9af7102158500b6b60d88f1c89f6de07e2b9ecd5013c4217adb0"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+# Avoid hardcoding this. Use an envvar or config or something.
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/token")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -91,7 +91,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 
-async def get_current_user(db: Session, token: str = Depends(oauth2_scheme)):
+async def get_current_user(db: Session = Depends(oauth2_scheme), token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -114,6 +114,7 @@ async def get_current_user(db: Session, token: str = Depends(oauth2_scheme)):
 async def get_current_approved_user(current_user: models.User = Depends(get_current_user)):
     if not current_user.approved:
         raise HTTPException(status_code=400, detail="Not approved.")
+    return current_user
 
 
 # Model names stored in DB are NOT model objects (even if we have ORM), they are names of models that a User can use

@@ -88,7 +88,9 @@ async def load_model(request: ModelLoadRequest, current_user: models.User = Depe
 
 
 @router.post("/generate")
-async def generate(request: ModelGenRequest):
+async def generate(request: ModelGenRequest, current_user: models.User = Depends(crud.get_current_approved_user)):
+    if not current_user.approved:
+        raise HTTPException(status_code=401)
     for m in gpt_models:
         if m.model_name == request.model:
             try:
