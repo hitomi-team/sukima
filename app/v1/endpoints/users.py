@@ -80,7 +80,7 @@ async def load_model(request: ModelLoadRequest, current_user: models.User = Depe
             if m.model_name == request.model:
                 return Util.error(None, "Model already loaded")
     try:
-        model = GPTHF(model_name=request.model, parallelize=request.parallel, sharded=request.sharded)
+        model = GPTHF(model_name=request.model, parallelize=request.parallel)
         gpt_models.append(model)
         return Util.success("Loaded model")
     except Exception:
