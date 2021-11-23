@@ -131,3 +131,5 @@ dmypy.json
 # Secrets
 secrets.json
 db.json
+
+.idea
