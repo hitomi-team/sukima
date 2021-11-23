@@ -74,15 +74,18 @@ async def get_model_list():
 async def load_model(request: ModelLoadRequest, current_user: models.User = Depends(crud.get_current_approved_user)):
     if not current_user.approved:
         raise HTTPException(status_code=401)
+
     # Check that model exists
     if gpt_models is not None:
         for m in gpt_models:
             if m.model_name == request.model:
                 return Util.error(None, "Model already loaded")
+
     try:
         model = GPTHF(model_name=request.model, parallelize=request.parallel, sharded=request.sharded)
         gpt_models.append(model)
         return Util.success("Loaded model")
+
     except Exception:
         return Util.error(None, "Unsupported model")
 
@@ -91,6 +94,7 @@ async def load_model(request: ModelLoadRequest, current_user: models.User = Depe
 async def generate(request: ModelGenRequest, current_user: models.User = Depends(crud.get_current_approved_user)):
     if not current_user.approved:
         raise HTTPException(status_code=401)
+
     for m in gpt_models:
         if m.model_name == request.model:
             try:
