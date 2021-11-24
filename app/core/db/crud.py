@@ -34,7 +34,7 @@ class TokenData(BaseModel):
     username: Optional[str] = None
 
 
-def get_db():
+def get_db() -> AsyncSession:
     db = session_local()
 
     try:
@@ -65,8 +65,8 @@ def create_user(db: Session, user: schemas.UserCreate):
     db_user = models.User(username=user.username, password=hashed_password)
 
     db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+    await db.commit()
+    await db.refresh(db_user)
 
     return db_user
 
