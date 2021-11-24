@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 SECRET_KEY = "e846cf2582aa9af7102158500b6b60d88f1c89f6de07e2b9ecd5013c4217adb0"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_DAYS = 30
 
 # Avoid hardcoding this. Use an envvar or config or something. Or move this somewhere else.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/token")
@@ -85,7 +85,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=30)
+        expire = datetime.utcnow() + timedelta(days=7)  # 7 day token expiration by default
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
