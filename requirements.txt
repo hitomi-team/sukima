@@ -1,4 +1,5 @@
 fastapi[all]
+alembic
 uvicorn[standard]
 python-jose[cryptography]
 python-multipart

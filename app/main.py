@@ -4,8 +4,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.db.database import *
 from app.v1.endpoints import auth, users
 
-Base.metadata.create_all(bind=engine)
-
 app = FastAPI()
 
 app.include_router(users.router, prefix="/api/v1", tags=["v1"])
