@@ -49,7 +49,7 @@ class AuthRequest(BaseModel):
     key: str
 
 
-@router.post("/users/register", response_model=schemas.User)
+@router.post("/register", response_model=schemas.User)
 async def create_user(user: schemas.UserCreate, db: Session = Depends(crud.get_db)):
     db_user = crud.get_user(db, user.username)
 

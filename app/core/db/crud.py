@@ -19,7 +19,7 @@ SECRET_KEY = "e846cf2582aa9af7102158500b6b60d88f1c89f6de07e2b9ecd5013c4217adb0"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-# Avoid hardcoding this. Use an envvar or config or something.
+# Avoid hardcoding this. Use an envvar or config or something. Or move this somewhere else.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/token")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

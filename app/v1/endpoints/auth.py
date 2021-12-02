@@ -10,7 +10,7 @@ import app.core.db.crud as crud
 router = APIRouter()
 
 
-@router.post("users/token", tags=["auth"])
+@router.post("/token", tags=["auth"])
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(crud.get_db)):
     user = crud.authenticate_user(db, form_data.username, form_data.password)
     if not user:
