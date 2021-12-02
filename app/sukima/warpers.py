@@ -147,4 +147,5 @@ class PhraseBiasProcessor(LogitsProcessor):
                         continue
                     else:
                         scores[:, token_id] += self.bias
+                        break
         return scores
