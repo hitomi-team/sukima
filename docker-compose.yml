@@ -2,8 +2,26 @@ version: '3.5'
 
 services:
     web:
-        container_name: gpt-server
-        build: .
-        command: python src/entrypoint.py
+        container_name: sukima
+        build:
+            context: .
+            dockerfile: Dockerfile
+        command: uvicorn app.main:app --reload --host 0.0.0.0 --port 80
+        env_file:
+            - ./conf.env
         ports:
-            - "8080:8080"
+            - 80:80
+        depends_on:
+            - pgdb
+
+    pgdb:
+        image: postgres:14-bullseye
+        volumes:
+            - postgres_data:/var/lib/postgres/data
+        env_file:
+            - ./conf.env
+        ports:
+            - 5432:5432
+
+volumes:
+    postgres_data:

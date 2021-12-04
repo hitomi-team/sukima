@@ -129,6 +129,7 @@ dmypy.json
 .pyre/
 
 # Secrets
+conf.env
 secrets.json
 db.json
 
