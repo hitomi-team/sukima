@@ -1,11 +1,14 @@
+# web
 fastapi[all]
-alembic
 uvicorn[standard]
 python-jose[cryptography]
-python-multipart
-sqlalchemy
-passlib
 bcrypt
+passlib
 pyopenssl
-tinydb
+# db
+databases[postgresql]
+alembic
+sqlalchemy
+# misc
+python-multipart
 transformers
