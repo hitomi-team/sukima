@@ -6,16 +6,15 @@ from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from starlette import status
 
+from app.core.config import SECRET_KEY
 import app.core.db.models as models
 import app.core.db.schemas as schemas
-from app.core.db.database import session_local
+from app.core.db.database import SessionLocal
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
-# DO NOT USE THIS IN PRODUCTION! In fact, use an .env file or something next time.
 
-SECRET_KEY = "e846cf2582aa9af7102158500b6b60d88f1c89f6de07e2b9ecd5013c4217adb0"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 30
 
@@ -34,8 +33,8 @@ class TokenData(BaseModel):
     username: Optional[str] = None
 
 
-def get_db() -> AsyncSession:
-    db = session_local()
+def get_db():
+    db = SessionLocal()
 
     try:
         yield db
@@ -65,8 +64,8 @@ def create_user(db: Session, user: schemas.UserCreate):
     db_user = models.User(username=user.username, password=hashed_password)
 
     db.add(db_user)
-    await db.commit()
-    await db.refresh(db_user)
+    db.commit()
+    db.refresh(db_user)
 
     return db_user
 
