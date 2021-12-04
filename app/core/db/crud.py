@@ -1,12 +1,12 @@
 from datetime import timedelta, datetime
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from starlette import status
 
-from app.core.config import SECRET_KEY
+from app.core.config import settings
 import app.core.db.models as models
 import app.core.db.schemas as schemas
 from app.core.db.database import SessionLocal
@@ -42,24 +42,24 @@ def get_db():
         db.close()
 
 
-def verify_password(plain, hashed):
+def verify_password(plain, hashed) -> bool:
     return pwd_context.verify(plain, hashed)
 
 
-def get_password_hash(plain):
+def get_password_hash(plain) -> str:
     return pwd_context.hash(plain)
 
 
 # Review FastAPI db docs
-def get_user(db: Session, username: str):
+def get_user(db: Session, username: str) -> models.User:
     return db.query(models.User).filter(models.User.username == username).first()
 
 
-def get_users(db: Session, skip: int = 0, limit: int = 100):
+def get_users(db: Session, skip: int = 0, limit: int = 100) -> List[models.User]:
     return db.query(models.User).offset(skip).limit(limit).all()
 
 
-def create_user(db: Session, user: schemas.UserCreate):
+def create_user(db: Session, user: schemas.UserCreate) -> models.User:
     hashed_password = get_password_hash(user.password)
     db_user = models.User(username=user.username, password=hashed_password)
 
@@ -86,18 +86,18 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     else:
         expire = datetime.utcnow() + timedelta(days=7)  # 7 day token expiration by default
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
-async def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+async def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)) -> models.User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
@@ -110,14 +110,14 @@ async def get_current_user(db: Session = Depends(get_db), token: str = Depends(o
     return user
 
 
-async def get_current_approved_user(current_user: models.User = Depends(get_current_user)):
+async def get_current_approved_user(current_user: models.User = Depends(get_current_user)) -> models.User:
     if not current_user.approved:
         raise HTTPException(status_code=400, detail="Not approved.")
     return current_user
 
 
 # Model names stored in DB are NOT model objects (even if we have ORM), they are names of models that a User can use
-def get_models(db: Session, skip: int = 0, limit: int = 100):
+def get_models(db: Session, skip: int = 0, limit: int = 100) -> List[models.ModelItem]:
     return db.query(models.ModelItem).offset(skip).limit(limit).all()
 
 

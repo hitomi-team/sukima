@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, Boolean, Integer, Table, ForeignKey
 from sqlalchemy.orm import relationship
 
 # SQLAlchemy models go here
-from app.core.db.database import Base
+from app.core.db.base_class import Base
 
 user_model_association_table = Table(
     'user_model_association',
