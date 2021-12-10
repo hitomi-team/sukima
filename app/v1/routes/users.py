@@ -24,7 +24,7 @@ async def register_user(user: UserCreate):
     return {"Successfully created user."}
 
 
-@router.post("users/token")
+@router.post("/users/token")
 async def generate_token(form_data: OAuth2PasswordRequestForm = Depends()):
     user = await authenticate_user(form_data.username, form_data.password)
 

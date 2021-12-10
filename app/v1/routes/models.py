@@ -1,5 +1,6 @@
 import time
 
+from app.db.utils import get_current_approved_user
 from app.gpt.gpthf import GPTHF
 from app.gpt.models import gpt_models
 from app.v1.models import *
@@ -19,7 +20,7 @@ async def get_model_list():
 
 
 @router.post("/models/load")
-async def load_model(request: ModelLoadRequest, current_user: User = Depends()):
+async def load_model(request: ModelLoadRequest, current_user: User = Depends(get_current_approved_user)):
     if not current_user.approved:
         raise HTTPException(status_code=401)
 
@@ -40,7 +41,7 @@ async def load_model(request: ModelLoadRequest, current_user: User = Depends()):
 
 
 @router.post("/models/generate")
-async def generate(request: ModelGenRequest, current_user: User = Depends()):
+async def generate(request: ModelGenRequest, current_user: User = Depends(get_current_approved_user)):
     if not current_user.approved:
         raise HTTPException(status_code=401, detail="User not approved.")
 
