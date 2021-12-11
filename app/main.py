@@ -21,6 +21,7 @@ def get_application():
 
     return _app
 
+
 app = get_application()
 
 app.include_router(users.router, prefix="/api/v1", tags=["v1"])
@@ -29,8 +30,8 @@ app.include_router(models.router, prefix="/api/v1", tags=["v1"])
 
 @app.on_event("startup")
 async def startup():
-    async with engine.connect() as conn:
-        await conn.run_sync(metadata.create_all)
+    # async with engine.connect() as conn:
+    #    await conn.run_sync(metadata.create_all)
 
     await database.connect()
 

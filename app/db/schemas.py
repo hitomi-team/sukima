@@ -1,6 +1,8 @@
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, MetaData, String, Table
 
-metadata = MetaData()
+from app.db.base_class import Base
+
+metadata = Base.metadata
 
 user_model_association = Table(
     'user_model_association',
