@@ -15,8 +15,7 @@ from passlib.context import CryptContext
 from app.schemas.token import TokenData
 from app.schemas.user import User
 
-# Avoid hardcoding this. Use an envvar or config or something. Or move this somewhere else.
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/users/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=settings.TOKEN_URL)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
@@ -71,21 +70,29 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username: str = payload.get("sub")
+
         if username is None:
             raise credentials_exception
+
         token_data = TokenData(username=username)
+
     except JWTError:
         raise credentials_exception
+
     user = get_user(username=token_data.username)
+
     if user is None:
         raise credentials_exception
+
     return user
 
 
 async def get_current_approved_user(current_user: User = Depends(get_current_user)):
     if not current_user.approved:
         raise HTTPException(status_code=400, detail="Not approved.")
+
     return current_user

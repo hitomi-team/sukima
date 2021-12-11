@@ -7,7 +7,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 router = APIRouter()
 
 
-@router.post("/users/register")
+@router.post("/register")
 async def register_user(user: UserCreate):
     query = users.select().where(users.c.username == user.username)
 
@@ -20,7 +20,7 @@ async def register_user(user: UserCreate):
     return {"Successfully created user."}
 
 
-@router.post("/users/token")
+@router.post("/token")
 async def generate_token(form_data: OAuth2PasswordRequestForm = Depends()):
     user = await authenticate_user(form_data.username, form_data.password)
 

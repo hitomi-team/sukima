@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 router = APIRouter()
 
 
-@router.get("/models")
+@router.get("/")
 async def get_model_list():
     model_dict = {"models": {}}
 
@@ -20,7 +20,7 @@ async def get_model_list():
     return model_dict
 
 
-@router.post("/models/load")
+@router.post("/load")
 async def load_model(request: ModelLoadRequest, current_user: User = Depends(get_current_approved_user)):
     if not current_user.approved:
         raise HTTPException(status_code=401)
@@ -41,7 +41,7 @@ async def load_model(request: ModelLoadRequest, current_user: User = Depends(get
         return HTTPException(status_code=400, detail=f"Unsupported model type: {request.model}")
 
 
-@router.post("/models/generate")
+@router.post("/generate")
 async def generate(request: ModelGenRequest, current_user: User = Depends(get_current_approved_user)):
     if not current_user.approved:
         raise HTTPException(status_code=401, detail="User not approved.")

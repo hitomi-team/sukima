@@ -1,8 +1,7 @@
 from typing import List
 
-from pydantic import BaseModel
-
 from app.schemas.model_item import ModelItem
+from pydantic import BaseModel
 
 
 class UserBase(BaseModel):
