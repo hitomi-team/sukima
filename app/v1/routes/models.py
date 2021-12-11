@@ -3,7 +3,8 @@ import time
 from app.db.utils import get_current_approved_user
 from app.gpt.gpthf import GPTHF
 from app.gpt.models import gpt_models
-from app.v1.models import *
+from app.schemas.model_item import ModelGenRequest, ModelLoadRequest
+from app.schemas.user import User
 from fastapi import APIRouter, Depends, HTTPException
 
 router = APIRouter()

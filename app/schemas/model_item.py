@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional, List
 
 from pydantic import BaseModel
 
@@ -9,22 +9,6 @@ class ModelItemBase(BaseModel):
 
 class ModelItem(ModelItemBase):
     size: int
-
-    class Config:
-        orm_mode = True
-
-
-class UserBase(BaseModel):
-    username: str
-
-
-class UserCreate(UserBase):
-    password: str
-
-
-class User(UserBase):
-    approved: bool
-    allowed_models: List[ModelItem] = []
 
     class Config:
         orm_mode = True
@@ -59,16 +43,3 @@ class ModelLoadRequest(BaseModel):
     model: str
     parallel: Optional[bool] = False
     sharded: Optional[bool] = False
-
-
-class AuthRequest(BaseModel):
-    key: str
-
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-
-class TokenData(BaseModel):
-    username: Optional[str] = None

@@ -1,8 +1,9 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, MetaData, String, Table
+from sqlalchemy import Table, Column, ForeignKey, String, Boolean
 
 from app.db.base_class import Base
 
 metadata = Base.metadata
+
 
 user_model_association = Table(
     'user_model_association',
@@ -18,12 +19,4 @@ users = Table(
     Column('username', String, primary_key=True, index=True),
     Column('password', String),
     Column('approved', Boolean, default=False)
-)
-
-
-models = Table(
-    'models',
-    metadata,
-    Column('model_name', String, primary_key=True, index=True),
-    Column('size', Integer)
 )

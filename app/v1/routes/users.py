@@ -1,10 +1,6 @@
-from datetime import timedelta
-
-from app.core.config import settings
-from app.db.database import database
-from app.db.schemas import *
 from app.db.utils import *
-from app.v1.models import *
+from app.models.user import users
+from app.schemas.user import UserCreate
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 

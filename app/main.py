@@ -4,8 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import app.v1.routes.models as models
 import app.v1.routes.users as users
 from app.core.config import settings
-from app.db.database import database, engine
-from app.db.schemas import metadata
+from app.db.database import database
 
 
 def get_application():

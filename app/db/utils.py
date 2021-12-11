@@ -2,20 +2,26 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import Depends, HTTPException
+from pydantic import BaseModel
 from starlette import status
 
 from app.core.config import settings
 from app.db.database import database
-from app.db.schemas import users
+from app.models.user import users
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 
-# Avoid hardcoding this. Use an envvar or config or something. Or move this somewhere else.
-from app.v1.models import User, TokenData
+from app.schemas.token import TokenData
+from app.schemas.user import User
 
+# Avoid hardcoding this. Use an envvar or config or something. Or move this somewhere else.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/users/token")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+class AuthRequest(BaseModel):
+    key: str
 
 
 def verify_password(plain, hashed):
