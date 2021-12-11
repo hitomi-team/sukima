@@ -3,7 +3,7 @@ from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Table
 
 metadata = Base.metadata
 
-
+# use sqlalchemy orms pls
 user_model_association = Table(
     'user_model_association',
     metadata,
