@@ -133,4 +133,5 @@ conf.env
 secrets.json
 db.json
 
+.vscode
 .idea
