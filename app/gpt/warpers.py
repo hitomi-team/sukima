@@ -50,6 +50,21 @@ class TailFreeSamplingLogitsWarper(LogitsWarper):
         scores = scores.masked_fill(indices_to_remove, self.filter_value)
         return scores
 
+class TopALogitsWarper(LogitsWarper):
+    def __init__(self, threshold: float, filter_value: float = -float("inf")):
+        if not isinstance(threshold, float) or (threshold < 0 or threshold > 1.0):
+            raise ValueError(f"`threshold` has to be a float > 0 and < 1, but is {threshold}")
+
+        self.z = threshold
+        self.filter_value = filter_value
+        print(threshold)
+
+    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor) -> torch.FloatTensor:
+        probs = torch.nn.functional.softmax(scores, dim=-1)
+        limit = torch.pow(torch.max(probs), 2.0) * self.z
+        indices_to_remove = probs < limit
+        scores = scores.masked_fill(indices_to_remove, self.filter_value)
+        return scores
 
 # @title Repetition Penalty Processor
 class RepetitionPenaltyLogitsProcessor(LogitsProcessor):

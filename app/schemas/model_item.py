@@ -22,6 +22,7 @@ class ModelGenArgs(BaseModel):
 class ModelSampleArgs(BaseModel):
     temp: Optional[float] = None
     top_p: Optional[float] = None
+    top_a: Optional[float] = None
     top_k: Optional[int] = None
     tfs: Optional[float] = None
     rep_p: Optional[float] = None
