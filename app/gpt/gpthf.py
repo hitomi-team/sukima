@@ -63,7 +63,10 @@ class GPTHF(GPTAuto):
 
         if sharded:
             model_cfg = AutoConfig.from_pretrained(model_name)
-            self.model = AutoModelForCausalLM.from_pretrained(pretrained_model_name_or_path=None, config=model_cfg, state_dict=Checkpoint(model_name, self.device), torch_dtype=torch.float16).eval().to(self.device)
+            self.model = AutoModelForCausalLM.from_pretrained(
+                pretrained_model_name_or_path=None, config=model_cfg, state_dict=Checkpoint(model_name, self.device), torch_dtype=torch.float16
+            ).eval().to(self.device)
+
         else:
             self.model = AutoModelForCausalLM.from_pretrained(model_name).to(self.device)
 
@@ -72,135 +75,139 @@ class GPTHF(GPTAuto):
         if parallelize:
             self.model.parallelize()
 
-        @torch.inference_mode()
-        def generate(self, args):
-            logits_warpers = []
-            logits_processors = []
-            stopping_criterion = []
+    @torch.inference_mode()
+    def generate(self, args):
+        logits_warpers = []
+        logits_processors = []
+        stopping_criterion = []
 
-            # Check if args are valid since it's a dictionary
-            print(args)
-            if not isinstance(args, dict):
-                raise TypeError("Arguments must be a dictionary")
+        # Check if args are valid since it's a dictionary
+        print(args)
+        if not isinstance(args, dict):
+            raise TypeError("Arguments must be a dictionary")
 
-            if "prompt" not in args:
-                raise KeyError("Arguments must contain a prompt")
+        if "prompt" not in args:
+            raise KeyError("Arguments must contain a prompt")
 
-            if "gen_args" not in args:
-                raise KeyError("Arguments must contain generation arguments")
+        if "gen_args" not in args:
+            raise KeyError("Arguments must contain generation arguments")
 
-            if "sample_args" not in args:
-                raise KeyError("Arguments must contain sampling arguments")
+        if "sample_args" not in args:
+            raise KeyError("Arguments must contain sampling arguments")
 
-            # Stopping criteria
-            if "max_length" in args["gen_args"] and args["gen_args"]["max_length"]:
-                if not isinstance(args["gen_args"]["max_length"], int) or args["gen_args"]["max_length"] < 0:
-                    raise TypeError("max_length must be a positive integer")
+        # Stopping criteria
+        if "max_length" in args["gen_args"] and args["gen_args"]["max_length"]:
+            if not isinstance(args["gen_args"]["max_length"], int) or args["gen_args"]["max_length"] < 0:
+                raise TypeError("max_length must be a positive integer")
 
-                prompt_length = len(self.tokenizer.encode(args["prompt"]))
-                stopping_criterion.append(MaxLengthCriteria(args["gen_args"]["max_length"] + prompt_length))
+            prompt_length = len(self.tokenizer.encode(args["prompt"]))
+            stopping_criterion.append(MaxLengthCriteria(args["gen_args"]["max_length"] + prompt_length))
 
-            if "max_time" in args["gen_args"] and args["gen_args"]["max_time"]:
-                if not isinstance(args["gen_args"]["max_time"], float) or args["gen_args"]["max_time"] < 0.0:
-                    raise TypeError("max_time must be a positive float")
+        if "max_time" in args["gen_args"] and args["gen_args"]["max_time"]:
+            if not isinstance(args["gen_args"]["max_time"], float) or args["gen_args"]["max_time"] < 0.0:
+                raise TypeError("max_time must be a positive float")
 
-                stopping_criterion.append(MaxTimeCriteria(args["gen_args"]["max_time"]))
+            stopping_criterion.append(MaxTimeCriteria(args["gen_args"]["max_time"]))
 
-            if len(stopping_criterion) == 0:
-                raise ValueError("Generation arguments must contain at least one stopping criteria such as max_length or max_time.")
+        if len(stopping_criterion) == 0:
+            raise ValueError("Generation arguments must contain at least one stopping criteria such as max_length or max_time.")
 
-            # Warpers
-            if "temp" in args["sample_args"] and args["sample_args"]["temp"]:
-                if not isinstance(args["sample_args"]["temp"], float) or (args["sample_args"]["temp"] < 0.0):
-                    raise ValueError("Temperature must be a float greater than 0.0")
+        # Warpers
+        if "temp" in args["sample_args"] and args["sample_args"]["temp"]:
+            if not isinstance(args["sample_args"]["temp"], float) or (args["sample_args"]["temp"] < 0.0):
+                raise ValueError("Temperature must be a float greater than 0.0")
 
-                logits_warpers.append(TemperatureLogitsWarper(args["sample_args"]["temp"]))
+            logits_warpers.append(TemperatureLogitsWarper(args["sample_args"]["temp"]))
 
-            if "top_p" in args["sample_args"] and args["sample_args"]["top_p"]:
-                if not isinstance(args["sample_args"]["top_p"], float) or (args["sample_args"]["top_p"] < 0.0 or args["sample_args"]["top_p"] > 1.0):
-                    raise ValueError("top_p must be a float between 0 and 1")
+        if "top_p" in args["sample_args"] and args["sample_args"]["top_p"]:
+            if not isinstance(args["sample_args"]["top_p"], float) or (args["sample_args"]["top_p"] < 0.0 or args["sample_args"]["top_p"] > 1.0):
+                raise ValueError("top_p must be a float between 0 and 1")
 
-                logits_warpers.append(TopPLogitsWarper(args["sample_args"]["top_p"]))
+            logits_warpers.append(TopPLogitsWarper(args["sample_args"]["top_p"]))
 
-            if "top_k" in args["sample_args"] and args["sample_args"]["top_k"]:
-                if not isinstance(args["sample_args"]["top_k"], int) or (args["sample_args"]["top_k"] <= 0):
-                    raise ValueError("top_k must be a positive integer")
+        if "top_k" in args["sample_args"] and args["sample_args"]["top_k"]:
+            if not isinstance(args["sample_args"]["top_k"], int) or (args["sample_args"]["top_k"] <= 0):
+                raise ValueError("top_k must be a positive integer")
 
-                logits_warpers.append(TopKLogitsWarper(args["sample_args"]["top_k"]))
-            
-            if "top_a" in args["sample_args"] and args["sample_args"]["top_a"]:
-                if not isinstance(args["sample_args"]["top_a"], float) or (args["sample_args"]["top_a"] < 0.0 or args["sample_args"]["top_a"] > 1.0):
-                    raise ValueError("top_a must be a float between 0 and 1")
+            logits_warpers.append(TopKLogitsWarper(args["sample_args"]["top_k"]))
+        
+        if "top_a" in args["sample_args"] and args["sample_args"]["top_a"]:
+            if not isinstance(args["sample_args"]["top_a"], float) or (args["sample_args"]["top_a"] < 0.0 or args["sample_args"]["top_a"] > 1.0):
+                raise ValueError("top_a must be a float between 0 and 1")
 
-                logits_warpers.append(TopALogitsWarper(args["sample_args"]["top_a"]))
+            logits_warpers.append(TopALogitsWarper(args["sample_args"]["top_a"]))
 
-            if "tfs" in args["sample_args"] and args["sample_args"]["tfs"]:
-                if not isinstance(args["sample_args"]["tfs"], float) or (args["sample_args"]["tfs"] < 0.0 or args["sample_args"]["tfs"] > 1.0):
-                    raise ValueError("tfs must be a float between 0 and 1")
+        if "tfs" in args["sample_args"] and args["sample_args"]["tfs"]:
+            if not isinstance(args["sample_args"]["tfs"], float) or (args["sample_args"]["tfs"] < 0.0 or args["sample_args"]["tfs"] > 1.0):
+                raise ValueError("tfs must be a float between 0 and 1")
 
-                logits_warpers.append(TailFreeSamplingLogitsWarper(args["sample_args"]["tfs"]))
+            logits_warpers.append(TailFreeSamplingLogitsWarper(args["sample_args"]["tfs"]))
 
-            # Processors
+        # Processors
+        if "rep_p" in args["sample_args"] and args["sample_args"]["rep_p"]:
+            slope = None
+            range = None
 
-            if "rep_p" in args["sample_args"] and args["sample_args"]["rep_p"]:
-                slope = None
-                range = None
+            if "rep_p_slope" in args["sample_args"] or args["sample_args"]["rep_p_slope"]:
+                if not isinstance(args["sample_args"]["rep_p_slope"], float) or args["sample_args"]["rep_p_slope"] < 0.0:
+                    raise ValueError("rep_p_slope must be a positive float.")
 
-                if "rep_p_slope" in args["sample_args"] or args["sample_args"]["rep_p_slope"]:
-                    if not isinstance(args["sample_args"]["rep_p_slope"], float) or args["sample_args"]["rep_p_slope"] < 0.0:
-                        raise ValueError("rep_p_slope must be a positive float.")
+                slope = args["sample_args"]["rep_p_slope"]
 
-                    slope = args["sample_args"]["rep_p_slope"]
+            if "rep_p_range" in args["sample_args"] or args["sample_args"]["rep_p_range"]:
+                if not isinstance(args["sample_args"]["rep_p_range"], int) or args["sample_args"]["rep_p_range"] < 0:
+                    raise ValueError("rep_p_range must be a positive integer.")
 
-                if "rep_p_range" in args["sample_args"] or args["sample_args"]["rep_p_range"]:
-                    if not isinstance(args["sample_args"]["rep_p_range"], int) or args["sample_args"]["rep_p_range"] < 0:
-                        raise ValueError("rep_p_range must be a positive integer.")
+                range = args["sample_args"]["rep_p_range"]
 
-                    range = args["sample_args"]["rep_p_range"]
+            logits_processors.append(RepetitionPenaltyLogitsProcessor(penalty=args["sample_args"]["rep_p"], slope=slope, penalize_last=range))
 
-                logits_processors.append(RepetitionPenaltyLogitsProcessor(penalty=args["sample_args"]["rep_p"], slope=slope, penalize_last=range))
+        if "bad_words" in args["sample_args"] and args["sample_args"]["bad_words"]:
+            if not isinstance(args["sample_args"]["bad_words"], list):
+                raise ValueError("bad_words must be a non-empty list")
 
-            if "bad_words" in args["sample_args"] and args["sample_args"]["bad_words"]:
-                if not isinstance(args["sample_args"]["bad_words"], list):
-                    raise ValueError("bad_words must be a non-empty list")
+            bad_words_ids = []
 
-                bad_words_ids = []
+            for bad_word in args["sample_args"]["bad_words"]:
+                if not isinstance(bad_word, str):
+                    raise ValueError("bad_words must be a list of strings")
 
-                for bad_word in args["sample_args"]["bad_words"]:
-                    if not isinstance(bad_word, str):
-                        raise ValueError("bad_words must be a list of strings")
+                bad_words_ids.append(self.tokenizer.encode(bad_word))
 
-                    bad_words_ids.append(self.tokenizer.encode(bad_word))
+            logits_processors.append(NoBadWordsLogitsProcessor(bad_words_ids, None))
 
-                logits_processors.append(NoBadWordsLogitsProcessor(bad_words_ids, None))
+        if "bias_words" in args["sample_args"] and args["sample_args"]["bias_words"]:
+            if not isinstance(args["sample_args"]["bias_words"], list):
+                raise ValueError("bias_words must be a non-empty list")
 
-            if "bias_words" in args["sample_args"] and args["sample_args"]["bias_words"]:
-                if not isinstance(args["sample_args"]["bias_words"], list):
-                    raise ValueError("bias_words must be a non-empty list")
+            if "bias" not in args["sample_args"] or not isinstance(args["sample_args"]["bias"], float):
+                raise KeyError("bias_words requires bias")
 
-                if "bias" not in args["sample_args"] or not isinstance(args["sample_args"]["bias"], float):
-                    raise KeyError("bias_words requires bias")
+            bias_words_ids = []
 
-                bias_words_ids = []
+            for bias_word in args["sample_args"]["bias_words"]:
+                if not isinstance(bias_word, str):
+                    raise ValueError("bias_words must be a list of strings")
 
-                for bias_word in args["sample_args"]["bias_words"]:
-                    if not isinstance(bias_word, str):
-                        raise ValueError("bias_words must be a list of strings")
+                bias_words_ids.append(self.tokenizer.encode(bias_word))
 
-                    bias_words_ids.append(self.tokenizer.encode(bias_word))
+            logits_processors.append(PhraseBiasProcessor(bias_words_ids, args["sample_args"]["bias"]))
 
-                logits_processors.append(PhraseBiasProcessor(bias_words_ids, args["sample_args"]["bias"]))
+        logits_warper = LogitsProcessorList(logits_warpers)
+        logits_processor = LogitsProcessorList(logits_processors)
+        stopping_criteria = StoppingCriteriaList(stopping_criterion)
 
-            logits_warper = LogitsProcessorList(logits_warpers)
-            logits_processor = LogitsProcessorList(logits_processors)
-            stopping_criteria = StoppingCriteriaList(stopping_criterion)
+        # Generate
+        input_ids = self.tokenizer.encode(args["prompt"], return_tensors='pt').to(self.device)
+        outputs = self.model.sample(
+            input_ids=input_ids,
+            logits_warper=logits_warper,
+            logits_processor=logits_processor,
+            stopping_criteria=stopping_criteria,
+            pad_token_id=self.tokenizer.eos_token_id
+        )
 
-            # Generate
-
-            input_ids = self.tokenizer.encode(args["prompt"], return_tensors='pt').to(self.device)
-            outputs = self.model.sample(input_ids=input_ids, logits_warper=logits_warper, logits_processor=logits_processor, stopping_criteria=stopping_criteria, pad_token_id=self.tokenizer.eos_token_id)
-
-            return self.tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]
+        return self.tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]
 
 """
 if __name__ == "__main__":
