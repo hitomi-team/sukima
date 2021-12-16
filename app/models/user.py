@@ -1,28 +1,27 @@
 from app.db.base_class import Base
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Table
+from sqlalchemy import Column, ForeignKey, Integer, SmallInteger, String, Table
 
-metadata = Base.metadata
-
-# use sqlalchemy orms pls
 user_model_association = Table(
     'user_model_association',
-    metadata,
-    Column('username', ForeignKey('users.username')),
-    Column('model_name', ForeignKey('models.model_name'))
+    Base.metadata,
+    Column('user_id', ForeignKey('users.id')),
+    Column('model_id', ForeignKey('models.id'))
 )
 
 
-users = Table(
-    'users',
-    metadata,
-    Column('username', String, primary_key=True, index=True),
-    Column('password', String),
-    Column('approved', Boolean, default=False)
-)
+class User(Base):
+    __tablename__ = "users"
 
-models = Table(
-    'models',
-    metadata,
-    Column('model_name', String, primary_key=True, index=True),
-    Column('size', Integer)
-)
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, index=True, nullable=False)
+    password = Column(String, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    permission_level = Column(SmallInteger, default=0, nullable=False)
+
+
+class Model(Base):
+    __tablaname__ = "models"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
+    size = Column(Integer, nullable=False)

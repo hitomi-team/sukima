@@ -1,8 +1,6 @@
 fastapi[all]
 uvicorn[standard]
-databases[postgresql]
 python-jose[cryptography]
-psycopg2
 asyncpg
 pydantic
 alembic

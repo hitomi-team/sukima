@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 class UserBase(BaseModel):
     username: str
+    email: str
 
 
 class UserCreate(UserBase):
@@ -13,7 +14,7 @@ class UserCreate(UserBase):
 
 
 class User(UserBase):
-    approved: bool
+    permission_level: int
     allowed_models: List[ModelItem] = []
 
     class Config:

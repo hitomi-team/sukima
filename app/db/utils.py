@@ -1,19 +1,19 @@
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import AsyncIterator, Optional
 
-from fastapi import Depends, HTTPException
-from pydantic import BaseModel
-from starlette import status
-
+import app.models.user as models
+import app.schemas.user as schemas
 from app.core.config import settings
-from app.db.database import database
-from app.models.user import users
-from fastapi.security import OAuth2PasswordBearer
-from jose import jwt, JWTError
-from passlib.context import CryptContext
-
+from app.db.database import async_session
 from app.schemas.token import TokenData
-from app.schemas.user import User
+from fastapi import Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from starlette import status
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=settings.TOKEN_URL)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -31,9 +31,30 @@ def get_password_hash(plain):
     return pwd_context.hash(plain)
 
 
-async def authenticate_user(username: str, password: str):
-    query = users.select().where(users.c.username == username)
-    user = await database.fetch_one(query)
+async def get_session() -> AsyncIterator[AsyncSession]:
+    async with async_session() as session:
+        try:
+            yield session
+        except Exception as e:
+            raise e
+        finally:
+            await session.close()
+
+
+async def get_user_by_username(session: AsyncSession, username: str) -> models.User:
+    return await session.execute(select(models.User).where(models.User.username == username))
+
+
+async def get_user_by_email(session: AsyncSession, email: str) -> models.User:
+    return await session.execute(select(models.User).where(models.User.email == email))
+
+
+async def add_user(session: AsyncSession, user: models.User):
+    await session.add(user)
+
+
+async def authenticate_user(session: AsyncSession, username: str, password: str):
+    user = await get_user_by_username(session, username)
 
     if not user:
         return False
@@ -41,12 +62,6 @@ async def authenticate_user(username: str, password: str):
     if not verify_password(password, user["password"]):
         return False
 
-    return user
-
-
-async def get_user(username: str):
-    query = users.select().where(users.c.username == username)
-    user = await database.fetch_one(query)
     return user
 
 
@@ -83,7 +98,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     except JWTError:
         raise credentials_exception
 
-    user = get_user(username=token_data.username)
+    user = await get_user_by_username(username=token_data.username)
 
     if user is None:
         raise credentials_exception
@@ -91,7 +106,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     return user
 
 
-async def get_current_approved_user(current_user: User = Depends(get_current_user)):
+async def get_current_approved_user(current_user: schemas.User = Depends(get_current_user)):
     if not current_user.approved:
         raise HTTPException(status_code=400, detail="Not approved.")
 

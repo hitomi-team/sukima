@@ -50,6 +50,7 @@ class TailFreeSamplingLogitsWarper(LogitsWarper):
         scores = scores.masked_fill(indices_to_remove, self.filter_value)
         return scores
 
+
 class TopALogitsWarper(LogitsWarper):
     def __init__(self, threshold: float, filter_value: float = -float("inf")):
         if not isinstance(threshold, float) or (threshold < 0 or threshold > 1.0):
@@ -65,6 +66,7 @@ class TopALogitsWarper(LogitsWarper):
         indices_to_remove = probs < limit
         scores = scores.masked_fill(indices_to_remove, self.filter_value)
         return scores
+
 
 # @title Repetition Penalty Processor
 class RepetitionPenaltyLogitsProcessor(LogitsProcessor):

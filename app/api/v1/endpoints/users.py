@@ -1,21 +1,23 @@
 from app.db.utils import *
-from app.models.user import users
 from app.schemas.user import UserCreate
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.logger import logger
+import logging
 
 router = APIRouter()
+logger.setLevel(logging.INFO)
 
 
 @router.post("/register")
-async def register_user(user: UserCreate):
-    query = users.select().where(users.c.username == user.username)
+async def register_user(user: UserCreate, session: AsyncSession = Depends(get_session)):
+    user = await get_user_by_email(session, user.email)
+    logger.info('test log')
 
-    if len(await database.fetch_all(query)) > 0:
-        raise HTTPException(status_code=409, detail="Username already in use.")
-
-    query = users.insert().values(username=user.username, password=get_password_hash(user.password))
-    await database.execute(query)
+    if not user:
+        query = users.insert().values(username=user.username, password=get_password_hash(user.password))
+        logger.info('inserting new user')
+        await database.execute(query)
 
     return {"Successfully created user."}
 
