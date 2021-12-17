@@ -42,15 +42,22 @@ async def get_session() -> AsyncIterator[AsyncSession]:
 
 
 async def get_user_by_username(session: AsyncSession, username: str) -> models.User:
-    return await session.execute(select(models.User).where(models.User.username == username))
+    return (await session.execute(select(models.User).where(models.User.username == username))).scalars().first()
 
 
 async def get_user_by_email(session: AsyncSession, email: str) -> models.User:
-    return await session.execute(select(models.User).where(models.User.email == email))
+    return (await session.execute(select(models.User).where(models.User.email == email))).scalars().first()
 
 
-async def add_user(session: AsyncSession, user: models.User):
-    await session.add(user)
+async def create_user(session: AsyncSession, user: schemas.UserCreate) -> models.User:
+    hashed_password = get_password_hash(user.password)
+    db_user = models.User(username=user.username, password=hashed_password, email=user.email)
+
+    session.add(db_user)
+    await session.commit()
+    await session.refresh(db_user)
+
+    return db_user
 
 
 async def authenticate_user(session: AsyncSession, username: str, password: str):
@@ -59,7 +66,7 @@ async def authenticate_user(session: AsyncSession, username: str, password: str)
     if not user:
         return False
 
-    if not verify_password(password, user["password"]):
+    if not verify_password(password, user.password):
         return False
 
     return user
@@ -79,7 +86,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(session: AsyncSession = Depends(get_session), token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -98,7 +105,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     except JWTError:
         raise credentials_exception
 
-    user = await get_user_by_username(username=token_data.username)
+    user = await get_user_by_username(session, username=token_data.username)
 
     if user is None:
         raise credentials_exception
@@ -107,7 +114,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
 
 async def get_current_approved_user(current_user: schemas.User = Depends(get_current_user)):
-    if not current_user.approved:
+    if not current_user.permission_level > 0:
         raise HTTPException(status_code=400, detail="Not approved.")
 
     return current_user
