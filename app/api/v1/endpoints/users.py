@@ -1,29 +1,29 @@
-from app.db.utils import *
+from datetime import timedelta
+
+import app.crud.user as crud
+from app.core.config import settings
+from app.db.utils import create_access_token, get_session
 from app.schemas.user import UserCreate
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi.logger import logger
-import logging
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
-logger.setLevel(logging.INFO)
 
 
 @router.post("/register")
 async def register_user(user: UserCreate, session: AsyncSession = Depends(get_session)):
-    db_user = await get_user_by_email(session, user.email)
-    print('test log. user is ' + str(db_user))
+    db_user = await crud.user.get_user_by_email(session, user.email)
 
     if not db_user:
-        print('inserting new user')
-        await create_user(session, user)
+        await crud.user.create_user(session, user)
 
     return {"Successfully created user."}
 
 
 @router.post("/token")
 async def generate_token(form_data: OAuth2PasswordRequestForm = Depends(), session: AsyncSession = Depends(get_session)):
-    user = await authenticate_user(session, form_data.username, form_data.password)
+    user = await crud.user.authenticate_user(session, form_data.username, form_data.password)
 
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials.")

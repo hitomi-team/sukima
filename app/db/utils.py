@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import AsyncIterator, Optional
 
-import app.models.user as models
+import app.crud.user as crud
 import app.schemas.user as schemas
 from app.core.config import settings
 from app.db.database import async_session
@@ -11,7 +11,6 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
@@ -39,37 +38,6 @@ async def get_session() -> AsyncIterator[AsyncSession]:
             raise e
         finally:
             await session.close()
-
-
-async def get_user_by_username(session: AsyncSession, username: str) -> models.User:
-    return (await session.execute(select(models.User).where(models.User.username == username))).scalars().first()
-
-
-async def get_user_by_email(session: AsyncSession, email: str) -> models.User:
-    return (await session.execute(select(models.User).where(models.User.email == email))).scalars().first()
-
-
-async def create_user(session: AsyncSession, user: schemas.UserCreate) -> models.User:
-    hashed_password = get_password_hash(user.password)
-    db_user = models.User(username=user.username, password=hashed_password, email=user.email)
-
-    session.add(db_user)
-    await session.commit()
-    await session.refresh(db_user)
-
-    return db_user
-
-
-async def authenticate_user(session: AsyncSession, username: str, password: str):
-    user = await get_user_by_username(session, username)
-
-    if not user:
-        return False
-
-    if not verify_password(password, user.password):
-        return False
-
-    return user
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -105,7 +73,7 @@ async def get_current_user(session: AsyncSession = Depends(get_session), token: 
     except JWTError:
         raise credentials_exception
 
-    user = await get_user_by_username(session, username=token_data.username)
+    user = await crud.user.get_user_by_username(session, username=token_data.username)
 
     if user is None:
         raise credentials_exception
