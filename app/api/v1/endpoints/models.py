@@ -1,6 +1,6 @@
 import time
 
-from app.db.utils import get_current_approved_user
+from app.api.deps import get_current_approved_user
 from app.gpt.gpthf import GPTHF
 from app.gpt.models import gpt_models
 from app.schemas.model_item import ModelGenRequest, ModelLoadRequest

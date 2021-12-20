@@ -1,8 +1,9 @@
 from datetime import timedelta
 
 import app.crud.user as crud
+from app.api.deps import get_session
 from app.core.config import settings
-from app.db.utils import create_access_token, get_session
+from app.core.security import create_access_token
 from app.schemas.user import UserCreate
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
