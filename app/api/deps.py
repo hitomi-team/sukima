@@ -43,7 +43,7 @@ async def get_current_user(session: AsyncSession = Depends(get_session), token: 
     except JWTError:
         raise credentials_exception
 
-    user = await crud.user.get_user_by_username(session, username=token_data.username)
+    user = await crud.user.get_by_username(session, username=token_data.username)
 
     if user is None:
         raise credentials_exception

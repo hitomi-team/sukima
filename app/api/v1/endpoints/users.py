@@ -24,7 +24,7 @@ async def register_user(user: UserCreate, session: AsyncSession = Depends(get_se
 
 @router.post("/token")
 async def generate_token(form_data: OAuth2PasswordRequestForm = Depends(), session: AsyncSession = Depends(get_session)):
-    user = await crud.user.authenticate_user(session, form_data.username, form_data.password)
+    user = await crud.user.authenticate(session, username=form_data.username, password=form_data.password)
 
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials.")

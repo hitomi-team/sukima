@@ -15,7 +15,7 @@ class CrudUser(CrudBase[User, UserCreate, UserUpdate]):
     async def get_by_username(self, session: AsyncSession, username: str) -> Optional[User]:
         return (await session.execute(select(self.model).where(self.model.username == username))).scalars().first()
 
-    async def add_user(self, session: AsyncSession, *, obj_in: UserCreate) -> User:
+    async def create_user(self, session: AsyncSession, *, obj_in: UserCreate) -> User:
         db_obj = User(
             username=obj_in.username,
             password=get_password_hash(obj_in.password),
@@ -30,15 +30,15 @@ class CrudUser(CrudBase[User, UserCreate, UserUpdate]):
         return db_obj
 
     async def authenticate(self, session: AsyncSession, *, username: str, password: str) -> Optional[User]:
-        user = await self.get_user_by_username(session, username)
+        db_user = await self.get_by_username(session, username)
 
-        if not user:
+        if not db_user:
             return False
 
-        if not verify_password(password, user.password):
+        if not verify_password(password, db_user.password):
             return False
 
-        return user
+        return db_user
 
 
 user = CrudUser(User)
