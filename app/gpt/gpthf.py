@@ -130,7 +130,7 @@ class GPTHF(GPTAuto):
                 raise ValueError("top_k must be a positive integer")
 
             logits_warpers.append(TopKLogitsWarper(args["sample_args"]["top_k"]))
-        
+
         if "top_a" in args["sample_args"] and args["sample_args"]["top_a"]:
             if not isinstance(args["sample_args"]["top_a"], float) or (args["sample_args"]["top_a"] < 0.0 or args["sample_args"]["top_a"] > 1.0):
                 raise ValueError("top_a must be a float between 0 and 1")

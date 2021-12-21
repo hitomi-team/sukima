@@ -1,6 +1,6 @@
 import time
 
-from app.db.utils import get_current_approved_user
+from app.api.deps import get_current_approved_user
 from app.gpt.gpthf import GPTHF
 from app.gpt.models import gpt_models
 from app.schemas.model_item import ModelGenRequest, ModelLoadRequest
@@ -21,10 +21,7 @@ async def get_model_list():
 
 
 @router.post("/load")
-async def load_model(request: ModelLoadRequest, current_user: User = Depends(get_current_approved_user)):
-    if not current_user.approved:
-        raise HTTPException(status_code=401)
-
+async def load_model(request: ModelLoadRequest, current_user: User = Depends(get_current_approved_user)): # noqa
     # Check that model exists
     if gpt_models is not None:
         for m in gpt_models:
@@ -42,14 +39,14 @@ async def load_model(request: ModelLoadRequest, current_user: User = Depends(get
 
 
 @router.post("/generate")
-async def generate(request: ModelGenRequest, current_user: User = Depends(get_current_approved_user)):
-    if not current_user.approved:
-        raise HTTPException(status_code=401, detail="User not approved.")
-
+async def generate(request: ModelGenRequest, current_user: User = Depends(get_current_approved_user)): # noqa
     for m in gpt_models:
         if m.model_name == request.model:
             try:
-                return {m.generate(request.dict()), time.time()}
+                return {"completion": {
+                    "text": m.generate(request.dict()),
+                    "time": time.time()
+                }}
 
             except Exception as e:
                 raise HTTPException(status_code=400, detail=f"Invalid request body!\n{e}")

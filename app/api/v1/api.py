@@ -1,4 +1,4 @@
-from app.v1.endpoints import models, users
+from app.api.v1.endpoints import models, users
 from fastapi import APIRouter
 
 api_router = APIRouter()
