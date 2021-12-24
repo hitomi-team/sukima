@@ -34,8 +34,8 @@ async def load_model(request: ModelLoadRequest, current_user: User = Depends(get
 
         return {f"Successfully loaded model: {request.model}"}
 
-    except Exception:
-        return HTTPException(status_code=400, detail=f"Unsupported model type: {request.model}")
+    except Exception as e:
+        return HTTPException(status_code=400, detail=f"Unsupported model type: {request.model}\n{e}")
 
 
 @router.post("/generate")
