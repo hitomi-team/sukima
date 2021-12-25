@@ -1,3 +1,4 @@
+from typing import Type
 import torch
 from app.gpt.gptauto import GPTAuto
 from app.gpt.warpers import *
@@ -5,7 +6,7 @@ from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
                           LogitsProcessorList, MaxLengthCriteria,
                           MaxTimeCriteria, NoBadWordsLogitsProcessor,
                           StoppingCriteriaList, TemperatureLogitsWarper,
-                          TopKLogitsWarper, TopPLogitsWarper)
+                          TopKLogitsWarper, TopPLogitsWarper, MinLengthLogitsProcessor)
 
 try:
     from collections.abc import MutableMapping
@@ -80,6 +81,7 @@ class GPTHF(GPTAuto):
         logits_warpers = []
         logits_processors = []
         stopping_criterion = []
+        eos_token_id = None
 
         # Check if args are valid since it's a dictionary
         print(args)
@@ -108,6 +110,18 @@ class GPTHF(GPTAuto):
                 raise TypeError("max_time must be a positive float")
 
             stopping_criterion.append(MaxTimeCriteria(args["gen_args"]["max_time"]))
+        
+        if "eos_token_id" in args["gen_args"] and args["gen_args"]["eos_token_id"]:
+            if not isinstance(args["gen_args"]["eos_token_id"], int) or args["gen_args"]["eos_token_id"] < 0:
+                raise TypeError("eos_token_id must be a positive integer")
+
+            eos_token_id = args["gen_args"]["eos_token_id"]
+
+        if "min_length" in args["gen_args"] and args["gen_args"]["min_length"]:
+            if not isinstance(args["gen_args"]["min_length"], int) or args["gen_args"]["min_length"] > args["gen_args"]["max_length"]:
+                raise TypeError("min_length must be an integer less than max_length.")
+
+            logits_processors.append(MinLengthLogitsProcessor(args["gen_args"]["min_length"], eos_token_id))
 
         if len(stopping_criterion) == 0:
             raise ValueError("Generation arguments must contain at least one stopping criteria such as max_length or max_time.")
@@ -204,7 +218,8 @@ class GPTHF(GPTAuto):
             logits_warper=logits_warper,
             logits_processor=logits_processor,
             stopping_criteria=stopping_criteria,
-            pad_token_id=self.tokenizer.eos_token_id
+            pad_token_id=self.tokenizer.eos_token_id,
+            eos_token_id=eos_token_id
         )
 
         return self.tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]

@@ -17,6 +17,8 @@ class ModelItem(ModelItemBase):
 class ModelGenArgs(BaseModel):
     max_length: int
     max_time: Optional[float] = None
+    min_length: Optional[int] = None
+    eos_token_id: Optional[int] = None
 
 
 class ModelSampleArgs(BaseModel):
