@@ -84,7 +84,6 @@ class GPTHF(GPTAuto):
         eos_token_id = None
 
         # Check if args are valid since it's a dictionary
-        print(args)
         if not isinstance(args, dict):
             raise TypeError("Arguments must be a dictionary")
 
