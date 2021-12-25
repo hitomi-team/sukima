@@ -4,6 +4,7 @@ from typing import List
 import numpy as np
 import torch
 from transformers import LogitsProcessor, LogitsWarper
+from math import exp
 
 
 class TailFreeSamplingLogitsWarper(LogitsWarper):
@@ -172,7 +173,7 @@ class PhraseBiasProcessor(LogitsProcessor):
             )
 
         self.words_ids = words_ids
-        self.bias = bias
+        self.bias = exp(bias)
 
     def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor) -> torch.FloatTensor:
         for phrase_ids in self.words_ids:
