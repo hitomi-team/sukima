@@ -95,15 +95,15 @@ class GPTHF(GPTAuto):
         if not isinstance(args, dict):
             raise TypeError("Arguments must be a dictionary")
 
-        if "softprompt" in args:
+        if "softprompt" in args and args["softprompt"]:
             metadata = {'name':'', 'uuid':'', 'epoch':'', 'description':''}
             tbuf = np.frombuffer(zlib.decompress(base64.b64decode(args['softprompt'])), dtype=np.float16)
             tensor = torch.from_numpy(np.array(tbuf).reshape(20, len(tbuf)//20)).to(self.device)
             softprompt = SoftPrompt(tensor, metadata)
-            sp_ids = []
-            for id in softprompt.get_special_token_ids():
-                sp_ids.append([id])
-            logits_processors.append(NoBadWordsLogitsProcessor(sp_ids, None))
+            sp_ids = [[id] for id in softprompt.get_special_token_ids()]
+        else:
+            sp_ids = [[id] for id in SoftPrompt.get_special_token_ids()]
+        logits_processors.append(NoBadWordsLogitsProcessor(sp_ids, None))
 
         if "prompt" not in args:
             raise KeyError("Arguments must contain a prompt")
