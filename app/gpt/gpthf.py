@@ -15,6 +15,12 @@ except ImportError:
 
 from pathlib import Path
 
+import pickle
+import base64
+
+from mkultra.inference import AutoModelSoftPromptLM
+from mkultra.tokenizers import GPT2SPTokenizerFast
+from mkultra.soft_prompt import SoftPrompt
 
 class Checkpoint(MutableMapping):
     def __init__(self, chkpt_dir, device="cpu"):
@@ -64,14 +70,14 @@ class GPTHF(GPTAuto):
 
         if sharded:
             model_cfg = AutoConfig.from_pretrained(model_name)
-            self.model = AutoModelForCausalLM.from_pretrained(
+            self.model = AutoModelSoftPromptLM.from_pretrained(
                 pretrained_model_name_or_path=None, config=model_cfg, state_dict=Checkpoint(model_name, self.device), torch_dtype=torch.float16
             ).eval().to(self.device)
 
         else:
-            self.model = AutoModelForCausalLM.from_pretrained(model_name).to(self.device)
+            self.model = AutoModelSoftPromptLM.from_pretrained(model_name).to(self.device)
 
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.tokenizer = GPT2SPTokenizerFast.from_pretrained(model_name)
 
         if parallelize:
             self.model.parallelize()
@@ -82,13 +88,27 @@ class GPTHF(GPTAuto):
         logits_processors = []
         stopping_criterion = []
         eos_token_id = None
+        softprompt = None
 
         # Check if args are valid since it's a dictionary
         if not isinstance(args, dict):
             raise TypeError("Arguments must be a dictionary")
 
+        if "softprompt" in args:
+            tensor = pickle.loads(base64.b64decode(args["softprompt"]))
+            softprompt = SoftPrompt(tensor, None)
+            sp_ids = []
+            for id in softprompt.get_special_token_ids():
+                sp_ids.append([id])
+            logits_processors.append(NoBadWordsLogitsProcessor(sp_ids, None))
+
         if "prompt" not in args:
             raise KeyError("Arguments must contain a prompt")
+        else:
+            if softprompt:
+                prompt = softprompt + args["prompt"]
+            else:
+                prompt = args["prompt"]
 
         if "gen_args" not in args:
             raise KeyError("Arguments must contain generation arguments")
@@ -102,6 +122,8 @@ class GPTHF(GPTAuto):
                 raise TypeError("max_length must be a positive integer")
 
             prompt_length = len(self.tokenizer.encode(args["prompt"]))
+            if softprompt:
+                prompt_length += 20
             stopping_criterion.append(MaxLengthCriteria(args["gen_args"]["max_length"] + prompt_length))
 
         if "max_time" in args["gen_args"] and args["gen_args"]["max_time"]:
@@ -236,7 +258,7 @@ class GPTHF(GPTAuto):
         stopping_criteria = StoppingCriteriaList(stopping_criterion)
 
         # Generate
-        input_ids = self.tokenizer.encode(args["prompt"], return_tensors='pt').to(self.device)
+        input_ids = self.tokenizer.encode(prompt, return_tensors='pt').to(self.device)
         outputs = self.model.sample(
             input_ids=input_ids,
             logits_warper=logits_warper,
@@ -245,7 +267,8 @@ class GPTHF(GPTAuto):
             pad_token_id=self.tokenizer.eos_token_id,
             eos_token_id=eos_token_id
         )
-
+        if softprompt:
+            return self.tokenizer.batch_decode(outputs, skip_special_tokens=True)[0][len(softprompt.get_tag_str()):]
         return self.tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]
 
 """

@@ -9,3 +9,4 @@ torch
 transformers
 bcrypt
 passlib
+git+https://github.com/harubaru/mkultra.git
