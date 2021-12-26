@@ -6,6 +6,7 @@ pydantic
 alembic
 sqlalchemy
 torch
+numpy
 transformers
 bcrypt
 passlib

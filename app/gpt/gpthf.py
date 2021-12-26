@@ -15,7 +15,8 @@ except ImportError:
 
 from pathlib import Path
 
-import pickle
+import numpy as np
+import zlib
 import base64
 
 from mkultra.inference import AutoModelSoftPromptLM
@@ -95,8 +96,10 @@ class GPTHF(GPTAuto):
             raise TypeError("Arguments must be a dictionary")
 
         if "softprompt" in args:
-            tensor = pickle.loads(base64.b64decode(args["softprompt"]))
-            softprompt = SoftPrompt(tensor, None)
+            metadata = {'name':'', 'uuid':'', 'epoch':'', 'description':''}
+            tbuf = np.frombuffer(zlib.decompress(base64.b64decode(args['softprompt'])), dtype=np.float16)
+            tensor = torch.from_numpy(np.array(tbuf).reshape(20, len(tbuf)//20)).to(self.device)
+            softprompt = SoftPrompt(tensor, metadata)
             sp_ids = []
             for id in softprompt.get_special_token_ids():
                 sp_ids.append([id])
@@ -270,9 +273,3 @@ class GPTHF(GPTAuto):
         if softprompt:
             return self.tokenizer.batch_decode(outputs, skip_special_tokens=True)[0][len(softprompt.get_tag_str()):]
         return self.tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]
-
-"""
-if __name__ == "__main__":
-        model = GPTHF(model_name="chpt", sharded=True)
-        print(model.generate({"prompt": "Hello world!", "gen_args": {"max_length": 10}, "sample_args": {"temperature": 1.0}}))
-"""
