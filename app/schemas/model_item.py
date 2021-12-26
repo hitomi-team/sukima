@@ -21,6 +21,13 @@ class ModelGenArgs(BaseModel):
     eos_token_id: Optional[int] = None
 
 
+class ModelBiasArgs(BaseModel):
+    sequence: str
+    bias: float
+    ensure_sequence_finish: bool
+    generate_once: bool
+
+
 class ModelSampleArgs(BaseModel):
     temp: Optional[float] = None
     top_p: Optional[float] = None
@@ -31,8 +38,7 @@ class ModelSampleArgs(BaseModel):
     rep_p_range: Optional[int] = None
     rep_p_slope: Optional[float] = None
     bad_words: List[str] = None
-    bias_words: List[str] = None
-    bias: Optional[float] = None
+    biases: Optional[List[ModelBiasArgs]] = None
 
 
 class ModelGenRequest(BaseModel):

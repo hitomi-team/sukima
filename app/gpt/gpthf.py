@@ -189,22 +189,27 @@ class GPTHF(GPTAuto):
 
             logits_processors.append(NoBadWordsLogitsProcessor(bad_words_ids, None))
 
-        if "bias_words" in args["sample_args"] and args["sample_args"]["bias_words"]:
-            if not isinstance(args["sample_args"]["bias_words"], list):
-                raise ValueError("bias_words must be a non-empty list")
+        if "biases" in args["sample_args"] and args["sample_args"]["biases"]:
+            if not isinstance(args["sample_args"]["biases"], list):
+                raise ValueError("biases must be a non-empty list")
+            
+            for bias in args["sample_args"]["biases"]:
+                if not isinstance(bias, dict):
+                    raise ValueError("biases must be a list of dictionaries")
 
-            if "bias" not in args["sample_args"] or not isinstance(args["sample_args"]["bias"], float):
-                raise KeyError("bias_words requires bias")
+                if "sequence" not in bias or not isinstance(bias["sequence"], str):
+                    raise ValueError("biases must be a list of dictionaries with a sequence key")
 
-            bias_words_ids = []
+                if "bias" not in bias or not isinstance(bias["bias"], float):
+                    raise ValueError("biases must be a list of dictionaries with a bias key")
 
-            for bias_word in args["sample_args"]["bias_words"]:
-                if not isinstance(bias_word, str):
-                    raise ValueError("bias_words must be a list of strings")
+                if "ensure_sequence_finish" not in bias or not isinstance(bias["ensure_sequence_finish"], bool):
+                    raise ValueError("biases must be a list of dictionaries with an ensure_sequence_finish key")
 
-                bias_words_ids.append(self.tokenizer.encode(bias_word))
+                if "generate_once" not in bias or not isinstance(bias["generate_once"], bool):
+                    raise ValueError("biases must be a list of dictionaries with a generate_once key")
 
-            logits_processors.append(PhraseBiasProcessor(bias_words_ids, args["sample_args"]["bias"]))
+                logits_processors.append(PhraseBiasProcessor([self.tokenizer.encode(bias["sequence"])], bias["bias"], bias["ensure_sequence_finish"], bias["generate_once"]))
 
         logits_warper = LogitsProcessorList(logits_warpers)
         logits_processor = LogitsProcessorList(logits_processors)

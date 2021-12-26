@@ -59,7 +59,6 @@ class TopALogitsWarper(LogitsWarper):
 
         self.z = threshold
         self.filter_value = filter_value
-        print(threshold)
 
     def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor) -> torch.FloatTensor:
         probs = torch.nn.functional.softmax(scores, dim=-1)
@@ -157,7 +156,7 @@ class RepetitionPenaltyLogitsProcessor(LogitsProcessor):
 
 
 class PhraseBiasProcessor(LogitsProcessor):
-    def __init__(self, words_ids: List[List[int]], bias: float):
+    def __init__(self, words_ids: List[List[int]], bias: float, ensure_sequence_finish: bool, generate_once: bool):
         if not isinstance(words_ids, list) or len(words_ids) == 0:
             return
 
@@ -174,19 +173,36 @@ class PhraseBiasProcessor(LogitsProcessor):
 
         self.words_ids = words_ids
         self.bias = exp(bias)
-
+        self.ensure_sequence_finish = ensure_sequence_finish
+        self.generate_once = generate_once
+    
+    def slice_in_list(self, l, s):
+        a = 0
+        for i in range(l.shape[1]):
+            for j in range(len(s)):
+                if l[:,i].item() == s[j]:
+                    a += 1
+        return a
+    
     def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor) -> torch.FloatTensor:
         for phrase_ids in self.words_ids:
-            if phrase_ids[0] not in input_ids:
-                scores[:, phrase_ids[0]] += self.bias
-
+            if self.generate_once:
+                if phrase_ids[0] not in input_ids:
+                    scores[:, phrase_ids[0]] += self.bias
+                    continue
             else:
-                for token_id in phrase_ids:
-                    if token_id in input_ids:
-                        continue
-
-                    else:
-                        scores[:, token_id] += self.bias
-                        break
+                scores[:, phrase_ids[0]] += self.bias
+            idx = self.slice_in_list(input_ids, phrase_ids)
+            if idx == len(phrase_ids) or idx > len(phrase_ids):
+                continue # sequence is finished
+            else:
+                if self.ensure_sequence_finish:
+                    if self.generate_once:
+                        scores[:, phrase_ids[idx]] -= self.bias
+                    scores[:, phrase_ids[idx]] = 1000.0 # max bias
+                    break
+                else:
+                    scores[:, phrase_ids[idx]] += self.bias
+                continue
 
         return scores
