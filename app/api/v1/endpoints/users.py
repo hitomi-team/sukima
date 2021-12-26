@@ -14,7 +14,7 @@ router = APIRouter()
 
 @router.post("/register")
 async def register_user(user: UserCreate, session: AsyncSession = Depends(get_session)):
-    db_user = await crud.user.get_user_by_email(session, user.email)
+    db_user = await crud.user.get_by_email(session, user.email)
 
     if not db_user:
         await crud.user.create_user(session, user)
