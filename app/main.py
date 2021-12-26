@@ -17,3 +17,7 @@ if settings.BACKEND_CORS_ORIGINS:
     )
 
 app.include_router(api_router, prefix="/api/v1", tags=["v1"])
+
+@app.get("/")
+async def root():
+    return 'Sometimes I dream about cheese.'
