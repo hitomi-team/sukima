@@ -17,7 +17,7 @@ async def register_user(user: UserCreate, session: AsyncSession = Depends(get_se
     db_user = await crud.user.get_by_email(session, user.email)
 
     if not db_user:
-        await crud.user.create_user(session, user)
+        await crud.user.create_user(session, obj_in=user)
 
     return {"Successfully created user."}
 
