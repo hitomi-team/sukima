@@ -21,14 +21,17 @@ class ModelGenArgs(BaseModel):
     eos_token_id: Optional[int] = None
 
 
-class ModelBiasArgs(BaseModel):
-    sequence: str
-    bias: float
-    ensure_sequence_finish: bool
-    generate_once: bool
-
-
 class ModelSampleArgs(BaseModel):
+    class ModelLogitBiasArgs(BaseModel):
+        id: int
+        bias: float
+    
+    class ModelPhraseBiasArgs(BaseModel):
+        sequences: List[str]
+        bias: float
+        ensure_sequence_finish: bool
+        generate_once: bool
+
     temp: Optional[float] = None
     top_p: Optional[float] = None
     top_a: Optional[float] = None
@@ -37,8 +40,10 @@ class ModelSampleArgs(BaseModel):
     rep_p: Optional[float] = None
     rep_p_range: Optional[int] = None
     rep_p_slope: Optional[float] = None
-    bad_words: List[str] = None
-    biases: Optional[List[ModelBiasArgs]] = None
+    bad_words: Optional[List[str]] = None
+    # logit biases are a list of int and float tuples
+    logit_biases: Optional[List[ModelLogitBiasArgs]] = None
+    phrase_biases: Optional[List[ModelPhraseBiasArgs]] = None
 
 
 class ModelGenRequest(BaseModel):

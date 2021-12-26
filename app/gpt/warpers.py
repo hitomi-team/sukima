@@ -1,5 +1,5 @@
 # @title Tail Free Sampling Warper
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 import torch
@@ -154,6 +154,29 @@ class RepetitionPenaltyLogitsProcessor(LogitsProcessor):
 
         return scores
 
+class LogitBiasProcessor(LogitsProcessor):
+    r"""
+    :class:`transformers.LogitsProcessor` adding bias to specific tokens
+    Args:
+        logit_biases (:obj:`List[Tuple[int, float]]`):
+            Adds a float bias to the given token's logit.
+    """
+
+    def __init__(self, logit_bias: List[Tuple[int, float]]=[]):
+        if not isinstance(logit_bias, list) and len(logit_bias) > 0:
+            raise ValueError("`logit_bias` has to be a non-empty list")
+        
+        # apply exp to each bias
+        self.logit_bias = [(token, exp(bias)) for token, bias in logit_bias]
+        self.bias = None
+
+    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor) -> torch.FloatTensor:
+        if self.bias is None:
+            self.bias = torch.zeros(scores.shape[1]).float()
+            logit_bias = torch.tensor(self.logit_bias)
+            self.bias.scatter_(0, logit_bias[:,0].long(), logit_bias[:,1].float())
+            self.bias = self.bias.to(scores.dtype).to(scores.device).unsqueeze(0)
+        return scores + self.bias
 
 class PhraseBiasProcessor(LogitsProcessor):
     def __init__(self, words_ids: List[List[int]], bias: float, ensure_sequence_finish: bool, generate_once: bool):
