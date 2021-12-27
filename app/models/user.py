@@ -20,7 +20,7 @@ class User(Base):
 
 
 class Model(Base):
-    __tablaname__ = "models"
+    __tablename__ = "models"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
