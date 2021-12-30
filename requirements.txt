@@ -6,6 +6,8 @@ pydantic
 alembic
 sqlalchemy
 torch
+numpy
 transformers
 bcrypt
 passlib
+git+https://github.com/harubaru/mkultra.git
