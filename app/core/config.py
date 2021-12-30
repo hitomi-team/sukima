@@ -1,3 +1,5 @@
+from pathlib import Path
+from os import PathLike
 from typing import Any, Dict, List, Optional, Union
 
 from pydantic import AnyHttpUrl, BaseSettings, validator
@@ -24,6 +26,7 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str
     DATABASE_URI: Optional[str] = None
+    STORAGE_PATH: PathLike = Path.cwd() / "storage"
 
     @validator("DATABASE_URI", pre=True)
     def assemble_db_connection(cls, v: Optional[str], values: Dict[str, Any]) -> Any:

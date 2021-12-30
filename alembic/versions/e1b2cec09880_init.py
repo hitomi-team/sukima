@@ -60,6 +60,6 @@ def downgrade():
     op.drop_table("users")
 
     op.drop_index(op.f("ix_models_id"), table_name="models")
-    op.drop_index(op.f("ix_models_model_name"), table_name="models")
+    op.drop_index(op.f("ix_models_name"), table_name="models")
     op.drop_table("models")
     # ### end Alembic commands ###

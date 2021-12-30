@@ -1,7 +1,10 @@
-from typing import Type
+from typing import Type, Optional
 import torch
+
+from app.core.config import settings
 from app.gpt.gptauto import GPTAuto
 from app.gpt.warpers import *
+from app.models.soft_prompt import SoftPrompt as SoftPromptModel
 from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
                           LogitsProcessorList, MaxLengthCriteria,
                           MaxTimeCriteria, NoBadWordsLogitsProcessor,
@@ -17,11 +20,11 @@ from pathlib import Path
 
 import numpy as np
 import zlib
-import base64
 
 from mkultra.inference import AutoModelSoftPromptLM
 from mkultra.tokenizers import GPT2SPTokenizerFast
 from mkultra.soft_prompt import SoftPrompt
+
 
 class Checkpoint(MutableMapping):
     def __init__(self, chkpt_dir, device="cpu"):
@@ -84,7 +87,7 @@ class GPTHF(GPTAuto):
             self.model.parallelize()
 
     @torch.inference_mode()
-    def generate(self, args):
+    def generate(self, args, *, db_softprompt: Optional[SoftPromptModel] = None):
         logits_warpers = []
         logits_processors = []
         stopping_criterion = []
@@ -95,9 +98,16 @@ class GPTHF(GPTAuto):
         if not isinstance(args, dict):
             raise TypeError("Arguments must be a dictionary")
 
-        if "softprompt" in args and args["softprompt"]:
-            metadata = {'name':'', 'uuid':'', 'epoch':'', 'description':''}
-            tbuf = np.frombuffer(zlib.decompress(base64.b64decode(args['softprompt'])), dtype=np.float16)
+        if db_softprompt:
+            metadata = {
+                'name': db_softprompt.name,
+                'uuid': db_softprompt.id,
+                'epoch': '',
+                'description': db_softprompt.description
+            }
+            with open(settings.STORAGE_PATH / db_softprompt.storage_filename(), "rb") as file:
+                data = file.read()
+            tbuf = np.frombuffer(zlib.decompress(data), dtype=np.float16)
             tensor = torch.from_numpy(np.array(tbuf).reshape(20, len(tbuf)//20)).to(self.device)
             softprompt = SoftPrompt(tensor, metadata)
             sp_ids = [[id] for id in softprompt.get_special_token_ids()]
