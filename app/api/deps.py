@@ -1,7 +1,7 @@
 from typing import AsyncIterator
 
 import app.crud.user as crud
-import app.schemas.user as schemas
+import app.models.user as models
 from app.core.config import settings
 from app.db.database import async_session
 from app.schemas.token import TokenData
@@ -24,7 +24,7 @@ async def get_session() -> AsyncIterator[AsyncSession]:
             await session.close()
 
 
-async def get_current_user(session: AsyncSession = Depends(get_session), token: str = Depends(oauth2_scheme)):
+async def get_current_user(session: AsyncSession = Depends(get_session), token: str = Depends(oauth2_scheme)) -> models.User: # noqa
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -51,7 +51,7 @@ async def get_current_user(session: AsyncSession = Depends(get_session), token: 
     return user
 
 
-async def get_current_approved_user(current_user: schemas.User = Depends(get_current_user)):
+async def get_current_approved_user(current_user: models.User = Depends(get_current_user)) -> models.User:
     if not current_user.permission_level > 0:
         raise HTTPException(status_code=400, detail="Not approved.")
 

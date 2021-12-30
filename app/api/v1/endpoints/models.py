@@ -1,11 +1,14 @@
 import time
 
-from app.api.deps import get_current_approved_user
+import app.crud.soft_prompt as crud
+from app.api.deps import get_current_approved_user, get_session
 from app.gpt.gpthf import GPTHF
 from app.gpt.models import gpt_models
 from app.schemas.model_item import ModelGenRequest, ModelLoadRequest
 from app.schemas.user import User
+
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
@@ -32,19 +35,25 @@ async def load_model(request: ModelLoadRequest, current_user: User = Depends(get
         model = GPTHF(model_name=request.model, parallelize=request.parallel, sharded=request.sharded)
         gpt_models.append(model)
 
-        return {f"Successfully loaded model: {request.model}"}
+        return {"message": f"Successfully loaded model: {request.model}"}
 
     except Exception as e:
         return HTTPException(status_code=400, detail=f"Unsupported model type: {request.model}\n{e}")
 
 
 @router.post("/generate")
-async def generate(request: ModelGenRequest, current_user: User = Depends(get_current_approved_user)): # noqa
+async def generate(request: ModelGenRequest, current_user: User = Depends(get_current_approved_user), session: AsyncSession = Depends(get_session)): # noqa
     for m in gpt_models:
         if m.model_name == request.model:
+            db_softprompt = None
+            if request.softprompt:
+                db_softprompt = await crud.soft_prompt.get(session, request.softprompt)
+                if db_softprompt is None:
+                    raise HTTPException(status_code=400, detail=f"No soft prompt with UUID {request.softprompt} exists!") # noqa
+
             try:
                 return {"completion": {
-                    "text": m.generate(request.dict()),
+                    "text": m.generate(request.dict(), db_softprompt=db_softprompt),
                     "time": time.time()
                 }}
 

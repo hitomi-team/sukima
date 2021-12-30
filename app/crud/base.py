@@ -36,6 +36,6 @@ class CrudBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
         return db_obj
 
-    async def remove(self, session: AsyncSession, *, id: int) -> ModelType:
+    async def remove(self, session: AsyncSession, *, id: Any) -> ModelType:
         # TODO: impl
         pass

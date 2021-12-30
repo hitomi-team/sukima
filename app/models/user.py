@@ -1,5 +1,6 @@
 from app.db.base_class import Base
 from sqlalchemy import Column, ForeignKey, Integer, SmallInteger, String, Table
+from sqlalchemy.orm import relationship
 
 user_model_association = Table(
     'user_model_association',
@@ -17,10 +18,11 @@ class User(Base):
     password = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     permission_level = Column(SmallInteger, default=0, nullable=False)
+    soft_prompts = relationship("SoftPrompt")
 
 
 class Model(Base):
-    __tablaname__ = "models"
+    __tablename__ = "models"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)

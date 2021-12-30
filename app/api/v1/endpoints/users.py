@@ -19,7 +19,7 @@ async def register_user(user: UserCreate, session: AsyncSession = Depends(get_se
     if not db_user:
         await crud.user.create_user(session, obj_in=user)
 
-    return {"Successfully created user."}
+    return {"message": "Successfully created user."}
 
 
 @router.post("/token")
