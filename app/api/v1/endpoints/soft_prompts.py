@@ -3,6 +3,7 @@ import json
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional
 
 import app.crud.soft_prompt as crud
 from app.api.deps import get_current_approved_user, get_session, get_current_user
@@ -11,10 +12,12 @@ from app.schemas.soft_prompt import SoftPromptCreate
 
 router = APIRouter()
 
+
 @router.get("/my")
-async def get_user_soft_prompts(current_user: User = Depends(get_current_approved_user), session: AsyncSession = Depends(get_session)):
+async def get_user_soft_prompts(current_user: User = Depends(get_current_approved_user), session: AsyncSession = Depends(get_session)): # noqa
     soft_prompts = await crud.soft_prompt.get_by_creator(session, creator=current_user)
     return [sp.asdict() for sp in soft_prompts]
+
 
 @router.post("/upload")
 async def upload_soft_prompt(file: UploadFile = File(...), current_user: User = Depends(get_current_approved_user), session: AsyncSession = Depends(get_session)): # noqa
@@ -32,8 +35,14 @@ async def upload_soft_prompt(file: UploadFile = File(...), current_user: User = 
 
     return db_obj.asdict()
 
+
 @router.get("/{id}")
-async def get_soft_prompt(id: str, current_user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)):
+async def get_soft_prompt(id: str, export: Optional[bool] = False, current_user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)): # noqa
+    # detect json file extension
+    if id.endswith(".json"):
+        export = True
+        id = id[:-5]
+
     db_obj = await crud.soft_prompt.get(session, id)
 
     if db_obj is None:
@@ -42,7 +51,15 @@ async def get_soft_prompt(id: str, current_user: User = Depends(get_current_user
     if not db_obj.public and current_user.id != db_obj.creator:
         raise HTTPException(status_code=403, detail="You are not authorized to view this soft prompt.")
 
-    return db_obj.asdict()
+    info = db_obj.asdict()
+    if export:
+        # add, remove fields to resemble original JSON that was uploaded
+        info.pop("id")
+        info.pop("public")
+        info["data"] = base64.b64encode(db_obj.read())
+
+    return info
+
 
 @router.delete("/{id}")
 async def delete_soft_prompt(id: str, current_user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)): # noqa

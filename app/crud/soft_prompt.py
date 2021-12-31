@@ -38,8 +38,7 @@ class CrudSoftPrompt(CrudBase[SoftPrompt, SoftPromptCreate, SoftPromptUpdate]):
         await session.commit()
         await session.refresh(db_obj)
 
-        with open(settings.STORAGE_PATH / db_obj.storage_filename(), "wb") as file:
-            file.write(data)
+        db_obj.write(data)
 
         return db_obj
 

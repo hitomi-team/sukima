@@ -105,9 +105,7 @@ class GPTHF(GPTAuto):
                 'epoch': '',
                 'description': db_softprompt.description
             }
-            with open(settings.STORAGE_PATH / db_softprompt.storage_filename(), "rb") as file:
-                data = file.read()
-            tbuf = np.frombuffer(zlib.decompress(data), dtype=np.float16)
+            tbuf = np.frombuffer(zlib.decompress(db_softprompt.read()), dtype=np.float16)
             tensor = torch.from_numpy(np.array(tbuf).reshape(20, len(tbuf)//20)).to(self.device)
             softprompt = SoftPrompt(tensor, metadata)
             sp_ids = [[id] for id in softprompt.get_special_token_ids()]

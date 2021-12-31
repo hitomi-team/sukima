@@ -1,3 +1,4 @@
+from app.core.config import settings
 from app.db.base_class import Base
 from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, Numeric
 
@@ -15,8 +16,16 @@ class SoftPrompt(Base):
     loss = Column(Numeric, nullable=False)
     steps = Column(Integer, nullable=False)
 
-    def storage_filename(self) -> str:
-        return f"{self.id}.zz"
+    def storage_path(self) -> str:
+        return settings.STORAGE_PATH / f"{self.id}.zz"
+
+    def read(self) -> bytes:
+        with open(self.storage_path(), "rb") as data_file:
+            return data_file.read()
+
+    def write(self, tensor_data: bytes):
+        with open(self.storage_path(), "wb") as data_file:
+            data_file.write(tensor_data)
 
     def asdict(self) -> dict:
         return {
@@ -26,7 +35,5 @@ class SoftPrompt(Base):
             "public": self.public,
             "model": self.model,
             "loss": self.loss,
-            "step": self.steps,
-            "url": f"/storage/{self.storage_filename()}"
+            "steps": self.steps,
         }
-
