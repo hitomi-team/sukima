@@ -1,3 +1,6 @@
+from typing import List
+
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import uuid4
 
@@ -39,6 +42,9 @@ class CrudSoftPrompt(CrudBase[SoftPrompt, SoftPromptCreate, SoftPromptUpdate]):
             file.write(data)
 
         return db_obj
+
+    async def get_by_creator(self, session: AsyncSession, *, creator: User) -> List[SoftPrompt]:
+        return (await session.execute(select(self.model).where(self.model.creator == creator.id))).scalars().all()
 
 
 soft_prompt = CrudSoftPrompt(SoftPrompt)

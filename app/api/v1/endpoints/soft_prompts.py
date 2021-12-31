@@ -11,6 +11,10 @@ from app.schemas.soft_prompt import SoftPromptCreate
 
 router = APIRouter()
 
+@router.get("/my")
+async def get_user_soft_prompts(current_user: User = Depends(get_current_approved_user), session: AsyncSession = Depends(get_session)):
+    soft_prompts = await crud.soft_prompt.get_by_creator(session, creator=current_user)
+    return [sp.asdict() for sp in soft_prompts]
 
 @router.post("/upload")
 async def upload_soft_prompt(file: UploadFile = File(...), current_user: User = Depends(get_current_approved_user), session: AsyncSession = Depends(get_session)): # noqa
