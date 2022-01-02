@@ -13,7 +13,8 @@ if settings.BACKEND_CORS_ORIGINS:
         CORSMiddleware,
         allow_credentials=True,
         allow_methods=["*"],
-        allow_headers=["*"]
+        allow_headers=["*"],
+        allow_origins=settings.BACKEND_CORS_ORIGINS
     )
 
 app.include_router(api_router, prefix="/api/v1", tags=["v1"])
