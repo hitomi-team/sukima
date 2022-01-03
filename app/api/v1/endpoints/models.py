@@ -4,7 +4,7 @@ import app.crud.soft_prompt as crud
 from app.api.deps import get_current_approved_user, get_session
 from app.gpt.gpthf import GPTHF
 from app.gpt.models import gpt_models
-from app.schemas.model_item import ModelGenRequest, ModelLoadRequest
+from app.schemas.model_item import ModelGenRequest, ModelLoadRequest, ModelClassifyRequest
 from app.schemas.user import User
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -60,4 +60,25 @@ async def generate(request: ModelGenRequest, current_user: User = Depends(get_cu
             except Exception as e:
                 raise HTTPException(status_code=400, detail=f"Invalid request body!\n{e}")
 
+    raise HTTPException(status_code=404, detail="Model not found.")
+
+@router.post("/classify")
+async def classify(request: ModelClassifyRequest, current_user: User = Depends(get_current_approved_user), session: AsyncSession = Depends(get_session)): # noqa
+    for m in gpt_models:
+        if m.model_name == request.model:
+            db_softprompt = None
+            if request.softprompt:
+                db_softprompt = await crud.soft_prompt.get(session, request.softprompt)
+                if db_softprompt is None:
+                    raise HTTPException(status_code=400, detail=f"No soft prompt with UUID {request.softprompt} exists!")
+
+            try:
+                return {"classification": {
+                    "probs": m.classify(request.dict(), db_softprompt=db_softprompt),
+                    "time": time.time()
+                }}
+            
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Invalid request body!\n{e}")
+        
     raise HTTPException(status_code=404, detail="Model not found.")

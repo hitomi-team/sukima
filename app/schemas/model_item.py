@@ -54,6 +54,12 @@ class ModelGenRequest(BaseModel):
     gen_args: ModelGenArgs
 
 
+class ModelClassifyRequest(BaseModel):
+    model: str
+    prompt: str
+    softprompt: Optional[str] = None
+    labels: List[int]
+
 class ModelLoadRequest(BaseModel):
     model: str
     parallel: Optional[bool] = False
