@@ -1,5 +1,6 @@
 fastapi[all]
 uvicorn[standard]
+ray[default]
 python-jose[cryptography]
 asyncpg
 pydantic
