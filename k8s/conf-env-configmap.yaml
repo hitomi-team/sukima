@@ -1,0 +1,19 @@
+apiVersion: v1
+data:
+  ACCESS_TOKEN_EXPIRATION: "30"
+  ALGORITHM: HS256
+  BACKEND_CORS_ORIGINS: '["http://localhost:8000", "https://localhost:8000", "http://localhost", "https://localhost"]'
+  POSTGRES_DB: app
+  POSTGRES_PASSWORD: postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_SERVER: database
+  POSTGRES_USER: postgres
+  PROJECT_NAME: sukima
+  SECRET_KEY: hJ05BJnKLArZUdJ591
+  TOKEN_URL: /api/v1/users/token
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: app-conf-env
+  name: conf-env
