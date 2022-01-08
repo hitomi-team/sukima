@@ -25,14 +25,8 @@ spec:
         io.kompose.service: app
     spec:
       containers:
-        - args:
-            - uvicorn
-            - app.main:app
-            - --reload
-            - --host
-            - 0.0.0.0
-            - --port
-            - "8000"
+        - command: ["/bin/sh","-c"]
+          args: ["alembic upgrade head && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"]
           env:
             - name: ACCESS_TOKEN_EXPIRATION
               valueFrom:
@@ -89,17 +83,12 @@ spec:
                 configMapKeyRef:
                   key: TOKEN_URL
                   name: conf-env
-          image: app
+          image: sukima_app:latest
+          imagePullPolicy: Never
           name: app
+          workingDir: /sukima/
           ports:
             - containerPort: 8000
           resources: {}
-          volumeMounts:
-            - mountPath: /sukima/
-              name: app-claim0
       restartPolicy: Always
-      volumes:
-        - name: app-claim0
-          persistentVolumeClaim:
-            claimName: app-claim0
 status: {}

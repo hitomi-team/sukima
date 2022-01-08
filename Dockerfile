@@ -4,8 +4,10 @@ ENV PYTHONUNBUFFERED 1
 ENV PYTHONPATH "${PYTHONPATH}:/"
 ENV PORT=8000
 
+RUN mkdir /sukima
 WORKDIR /sukima
 
-COPY requirements.txt /sukima/requirements.txt
+COPY . /sukima
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
+RUN alembic upgrade head
