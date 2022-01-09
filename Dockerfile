@@ -10,4 +10,3 @@ WORKDIR /sukima
 COPY . /sukima
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
-RUN alembic upgrade head
