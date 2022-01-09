@@ -73,9 +73,9 @@ class GPTHF(GPTAuto):
         self.device = device
 
         if sharded:
-            model_cfg = AutoConfig.from_pretrained(model_name)
+            model_cfg = AutoConfig.from_pretrained(model_name, return_dict=True)
             self.model = AutoModelSoftPromptLM.from_pretrained(
-                pretrained_model_name_or_path=None, config=model_cfg, state_dict=Checkpoint(model_name, self.device), torch_dtype=torch.float16, return_dict_in_generate=True
+                pretrained_model_name_or_path=None, config=model_cfg, state_dict=Checkpoint(model_name, self.device), torch_dtype=torch.float16
             ).eval().to(self.device)
 
         else:
