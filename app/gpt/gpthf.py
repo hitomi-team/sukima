@@ -348,3 +348,29 @@ class GPTHF(GPTAuto):
             output_logits[label] = scores[:,label].item()
 
         return output_logits
+
+    @torch.inference_mode()
+    def classify(self, args):
+        if not isinstance(args, dict):
+            raise ValueError("args must be a dictionary")
+
+        if "prompt" not in args or not isinstance(args["prompt"], str):
+            raise ValueError("args must contain a prompt")
+        
+        if "labels" not in args or not isinstance(args["labels"], list):
+            raise ValueError("args must contain a list of labels")
+        
+        for label in args["labels"]:
+            if not isinstance(label, str):
+                raise ValueError("labels must be a list of integers")
+
+        prompt_inputs = self.tokenizer(args["prompt"], return_tensors='pt').input_ids.to(self.device)
+
+        output_probs = {}
+        for i in args["labels"]:
+            label_inputs = self.tokenizer(i, return_tensors='pt').input_ids.to(self.device)
+            probs = self.model.forward(input_ids=torch.cat([prompt_inputs, label_inputs], dim=-1)).logits.softmax(-1)[0][-len(label_inputs[0]):]
+            token_probs = [probs[t][label_inputs[0][t]] for t in range(0, len(label_inputs[0]))]
+            output_probs[i] = torch.mean(torch.stack(token_probs, dim=-1)).item() 
+
+        return output_probs

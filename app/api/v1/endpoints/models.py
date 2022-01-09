@@ -63,18 +63,12 @@ async def generate(request: ModelGenRequest, current_user: User = Depends(get_cu
     raise HTTPException(status_code=404, detail="Model not found.")
 
 @router.post("/classify")
-async def classify(request: ModelClassifyRequest, current_user: User = Depends(get_current_approved_user), session: AsyncSession = Depends(get_session)): # noqa
+async def classify(request: ModelClassifyRequest, current_user: User = Depends(get_current_approved_user)): # noqa
     for m in gpt_models:
         if m.model_name == request.model:
-            db_softprompt = None
-            if request.softprompt:
-                db_softprompt = await crud.soft_prompt.get(session, request.softprompt)
-                if db_softprompt is None:
-                    raise HTTPException(status_code=400, detail=f"No soft prompt with UUID {request.softprompt} exists!")
-
             try:
                 return {"classification": {
-                    "probs": m.classify(request.dict(), db_softprompt=db_softprompt),
+                    "probs": m.classify(request.dict()),
                     "time": time.time()
                 }}
             

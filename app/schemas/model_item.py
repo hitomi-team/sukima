@@ -57,8 +57,7 @@ class ModelGenRequest(BaseModel):
 class ModelClassifyRequest(BaseModel):
     model: str
     prompt: str
-    softprompt: Optional[str] = None
-    labels: List[int]
+    labels: List[str]
 
 class ModelLoadRequest(BaseModel):
     model: str
