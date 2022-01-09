@@ -75,11 +75,11 @@ class GPTHF(GPTAuto):
         if sharded:
             model_cfg = AutoConfig.from_pretrained(model_name)
             self.model = AutoModelSoftPromptLM.from_pretrained(
-                pretrained_model_name_or_path=None, config=model_cfg, state_dict=Checkpoint(model_name, self.device), torch_dtype=torch.float16
+                pretrained_model_name_or_path=None, config=model_cfg, state_dict=Checkpoint(model_name, self.device), torch_dtype=torch.float16, return_dict_in_generate=True
             ).eval().to(self.device)
 
         else:
-            self.model = AutoModelSoftPromptLM.from_pretrained(model_name).to(self.device)
+            self.model = AutoModelSoftPromptLM.from_pretrained(model_name, return_dict_in_generate=True).to(self.device)
 
         self.tokenizer = GPT2SPTokenizerFast.from_pretrained(model_name)
 
@@ -93,6 +93,7 @@ class GPTHF(GPTAuto):
         stopping_criterion = []
         eos_token_id = None
         softprompt = None
+        output_scores = False
 
         # Check if args are valid since it's a dictionary
         if not isinstance(args, dict):
@@ -155,6 +156,11 @@ class GPTHF(GPTAuto):
 
             logits_processors.append(MinLengthLogitsProcessor(args["gen_args"]["min_length"], eos_token_id))
 
+        if "logprobs" in args["gen_args"] and args["gen_args"]["logprobs"]:
+            if not isinstance(args["gen_args"]["logprobs"], int) or args["gen_args"]["logprobs"] < 0 or args["gen_args"]["logprobs"] > 20:
+                raise TypeError("logprobs must be an integer between 0 and 20.")
+            output_scores = True
+
         if len(stopping_criterion) == 0:
             raise ValueError("Generation arguments must contain at least one stopping criteria such as max_length or max_time.")
 
@@ -191,22 +197,22 @@ class GPTHF(GPTAuto):
 
         # Processors
         if "rep_p" in args["sample_args"] and args["sample_args"]["rep_p"]:
-            slope = None
-            range = None
+            rep_slope = None
+            rep_range = None
 
             if "rep_p_slope" in args["sample_args"] and args["sample_args"]["rep_p_slope"]:
                 if not isinstance(args["sample_args"]["rep_p_slope"], float) or args["sample_args"]["rep_p_slope"] < 0.0:
                     raise ValueError("rep_p_slope must be a positive float.")
 
-                slope = args["sample_args"]["rep_p_slope"]
+                rep_slope = args["sample_args"]["rep_p_slope"]
 
             if "rep_p_range" in args["sample_args"] and args["sample_args"]["rep_p_range"]:
                 if not isinstance(args["sample_args"]["rep_p_range"], int) or args["sample_args"]["rep_p_range"] < 0:
                     raise ValueError("rep_p_range must be a positive integer.")
 
-                range = args["sample_args"]["rep_p_range"]
+                rep_range = args["sample_args"]["rep_p_range"]
 
-            logits_processors.append(RepetitionPenaltyLogitsProcessor(penalty=args["sample_args"]["rep_p"], slope=slope, penalize_last=range))
+            logits_processors.append(RepetitionPenaltyLogitsProcessor(penalty=args["sample_args"]["rep_p"], slope=rep_slope, penalize_last=rep_range))
 
         if "bad_words" in args["sample_args"] and args["sample_args"]["bad_words"]:
             if not isinstance(args["sample_args"]["bad_words"], list):
@@ -269,6 +275,7 @@ class GPTHF(GPTAuto):
         stopping_criteria = StoppingCriteriaList(stopping_criterion)
 
         # Generate
+        output = {}
         input_ids = self.tokenizer.encode(prompt, return_tensors='pt').to(self.device)
         outputs = self.model.sample(
             input_ids=input_ids,
@@ -276,11 +283,28 @@ class GPTHF(GPTAuto):
             logits_processor=logits_processor,
             stopping_criteria=stopping_criteria,
             pad_token_id=self.tokenizer.eos_token_id,
-            eos_token_id=eos_token_id
+            eos_token_id=eos_token_id,
+            output_scores=output_scores,
         )
+
+        output["output"] = self.tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
         if softprompt:
-            return self.tokenizer.batch_decode(outputs, skip_special_tokens=True)[0][len(softprompt.get_tag_str()):]
-        return self.tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]
+            output["output"] = output["output"][len(softprompt.get_tag_str()):]
+        
+        if "logprobs" in args["gen_args"] and args["gen_args"]["logprobs"]:
+            if not isinstance(args["gen_args"]["logprobs"], int) or args["gen_args"]["logprobs"] < 0 or args["gen_args"]["logprobs"] > 20:
+                pass
+            logprobs = []
+            for i in range(len(outputs.scores)):
+                logprobs_seq = []
+                scores_probs = outputs.scores[i].softmax(-1).topk(args["gen_args"]["logprobs"], dim=-1).values.tolist()
+                scores_indices = outputs.scores[i].topk(args["gen_args"]["logprobs"], dim=-1).indices.tolist()
+                for j in range(args['gen_args']['logprobs']):
+                    logprobs_seq.append((scores_indices[0][j], scores_probs[0][j]))
+                logprobs.append(logprobs_seq)
+            output["logprobs"] = logprobs
+        
+        return output
 
     @torch.inference_mode()
     def classify(self, args):

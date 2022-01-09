@@ -52,11 +52,7 @@ async def generate(request: ModelGenRequest, current_user: User = Depends(get_cu
                     raise HTTPException(status_code=400, detail=f"No soft prompt with UUID {request.softprompt} exists!") # noqa
 
             try:
-                return {"completion": {
-                    "text": m.generate(request.dict(), db_softprompt=db_softprompt),
-                    "time": time.time()
-                }}
-
+                return m.generate(request.dict(), db_softprompt=db_softprompt)
             except Exception as e:
                 raise HTTPException(status_code=400, detail=f"Invalid request body!\n{e}")
 
@@ -67,10 +63,7 @@ async def classify(request: ModelClassifyRequest, current_user: User = Depends(g
     for m in gpt_models:
         if m.model_name == request.model:
             try:
-                return {"classification": {
-                    "probs": m.classify(request.dict()),
-                    "time": time.time()
-                }}
+                return m.classify(request.dict())
             
             except Exception as e:
                 raise HTTPException(status_code=400, detail=f"Invalid request body!\n{e}")

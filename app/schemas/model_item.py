@@ -19,6 +19,7 @@ class ModelGenArgs(BaseModel):
     max_time: Optional[float] = None
     min_length: Optional[int] = None
     eos_token_id: Optional[int] = None
+    logprobs: Optional[int] = None
 
 
 class ModelSampleArgs(BaseModel):
