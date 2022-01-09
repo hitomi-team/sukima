@@ -14,7 +14,7 @@ services:
             - ./:/sukima/
         command: bash -c "alembic upgrade head && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
         depends_on:
-            - database
+            database:
                 condition: service_healthy
 
     database:
