@@ -14,4 +14,4 @@ jobs:
     - name: Fetch Dependencies
       run: sudo apt install docker-compose
     - name: Set Up Docker Environment
-      run: docker-compose up -d && docker run --network container:sukima_app_1 appropriate/curl --retry 30 --retry-connrefused http://localhost:8000/ 
+      run: docker-compose up -d && docker run --network host appropriate/curl --retry 30 --retry-connrefused http://localhost:8000/ 
