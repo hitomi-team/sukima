@@ -6,14 +6,14 @@ metadata:
     kompose.version: 1.24.0 (HEAD)
   creationTimestamp: null
   labels:
-    io.kompose.service: app
-  name: app
+    io.kompose.service: sukima
+  name: sukima
 spec:
   ports:
     - name: "8000"
       port: 8000
       targetPort: 8000
   selector:
-    io.kompose.service: app
+    io.kompose.service: sukima
 status:
   loadBalancer: {}
