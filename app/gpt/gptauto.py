@@ -3,4 +3,7 @@ class GPTAuto:
         self.model_name = model_name
 
     def generate(self, args):
-        return 'Not implemented'
+        raise NotImplementedError
+    
+    def classify(self, args):
+        raise NotImplementedError
