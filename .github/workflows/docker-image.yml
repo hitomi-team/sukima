@@ -16,4 +16,4 @@ jobs:
     - name: Set Up Docker Environment
       run: docker-compose up -d
     - name: Healthcheck
-      run: docker run --network container:sukima_app_1 appropriate/curl -s --retry 30 --retry-connrefused http://localhost:8000/
+      run: docker run --network container:sukima_app_1 appropriate/curl --retry 30 --retry-connrefused http://localhost:8000/
