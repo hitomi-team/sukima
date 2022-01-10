@@ -6,9 +6,10 @@ Sukima is a ready-to-deploy container that implements a REST API for Language Mo
 ### Curent API Functions
 - **models** : Fetch a list of ready-to-use Language Models for inference.
 - **load** : Allocate a Language Model.
-- **delete** : Free a Language Model from memory.
 - **generate** : Use a Language Model to generate tokens.
 - **classify** : Use a Language Model to classify tokens and retrieve scores.
+
+To view more information for API Usage, see ``/docs`` endpoint.
 
 ### Setup
 [Setup Guide](../../wiki/Setup)
