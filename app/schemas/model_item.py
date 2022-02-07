@@ -37,6 +37,7 @@ class ModelSampleArgs(BaseModel):
     top_p: Optional[float] = None
     top_a: Optional[float] = None
     top_k: Optional[int] = None
+    typical_p: Optional[float] = None
     tfs: Optional[float] = None
     rep_p: Optional[float] = None
     rep_p_range: Optional[int] = None

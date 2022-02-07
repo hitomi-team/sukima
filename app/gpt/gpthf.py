@@ -189,6 +189,12 @@ class GPTHF(GPTAuto):
 
             logits_warpers.append(TopALogitsWarper(args["sample_args"]["top_a"]))
 
+        if "typical_p" in args["sample_args"] and args["sample_args"]["typical_p"]:
+            if not isinstance(args["sample_args"]["typical_p"], float) or (args["sample_args"]["typical_p"] < 0.0 or args["sample_args"]["typical_p"] > 1.0):
+                raise ValueError("typical_p must be a float between 0 and 1")
+
+            logits_warpers.append(TypicalLogitsWarper(args["sample_args"]["typical_p"]))
+
         if "tfs" in args["sample_args"] and args["sample_args"]["tfs"]:
             if not isinstance(args["sample_args"]["tfs"], float) or (args["sample_args"]["tfs"] < 0.0 or args["sample_args"]["tfs"] > 1.0):
                 raise ValueError("tfs must be a float between 0 and 1")
