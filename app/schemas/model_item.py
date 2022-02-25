@@ -65,3 +65,4 @@ class ModelLoadRequest(BaseModel):
     model: str
     parallel: Optional[bool] = False
     sharded: Optional[bool] = False
+    quantized: Optional[bool] = False
