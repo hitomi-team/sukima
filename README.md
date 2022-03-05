@@ -21,4 +21,4 @@ To view more information for API Usage, see ``/docs`` endpoint.
 - Support for other Language Modeling tasks such as Sentiment Analysis and Named Entity Recognition.
 
 ### License
-[Simplified BSD License](LICENSE)
+[GPL-2.0](LICENSE)
