@@ -20,7 +20,7 @@ class ModelGenArgs(BaseModel):
     min_length: Optional[int] = None
     eos_token_id: Optional[int] = None
     logprobs: Optional[int] = None
-
+    best_of: Optional[int] = None
 
 class ModelSampleArgs(BaseModel):
     class ModelLogitBiasArgs(BaseModel):

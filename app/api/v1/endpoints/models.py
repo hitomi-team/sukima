@@ -1,5 +1,7 @@
 import time
 
+import traceback
+
 import app.crud.soft_prompt as crud
 from app.api.deps import get_current_approved_user, get_session
 from app.gpt.gpthf import GPTHF
@@ -54,7 +56,7 @@ async def generate(request: ModelGenRequest, current_user: User = Depends(get_cu
             try:
                 return m.generate(request.dict(), db_softprompt=db_softprompt)
             except Exception as e:
-                raise HTTPException(status_code=400, detail=f"Invalid request body!\n{e}")
+                raise HTTPException(status_code=400, detail=f"Invalid request body!\n{e}\n{traceback.format_exc()}")
 
     raise HTTPException(status_code=404, detail="Model not found.")
 

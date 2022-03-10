@@ -11,6 +11,8 @@ from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
                           StoppingCriteriaList, TemperatureLogitsWarper,
                           TopKLogitsWarper, TopPLogitsWarper, MinLengthLogitsProcessor)
 
+from transformers.generation_utils import GenerationMixin
+
 try:
     from collections.abc import MutableMapping
 except ImportError:
@@ -92,6 +94,7 @@ class GPTHF(GPTAuto):
             self.model = GPTJForCausalLM.from_pretrained(model_name, low_cpu_mem_usage=True, return_dict_in_generate=True).eval().to(self.device)
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         else:
+            self.quantized = False
             self.tokenizer = GPT2SPTokenizerFast.from_pretrained(model_name)
 
         if parallelize:
@@ -105,6 +108,8 @@ class GPTHF(GPTAuto):
         eos_token_id = None
         softprompt = None
         output_scores = False
+        best_of = None
+        prompt_length = None
 
         # Check if args are valid since it's a dictionary
         if not isinstance(args, dict):
@@ -172,6 +177,12 @@ class GPTHF(GPTAuto):
         if "logprobs" in args["gen_args"] and args["gen_args"]["logprobs"]:
             if not isinstance(args["gen_args"]["logprobs"], int) or args["gen_args"]["logprobs"] < 0 or args["gen_args"]["logprobs"] > 20:
                 raise TypeError("logprobs must be an integer between 0 and 20.")
+            output_scores = True
+
+        if "best_of" in args["gen_args"] and args["gen_args"]["best_of"]:
+            if not isinstance(args["gen_args"]["best_of"], int) or args["gen_args"]["best_of"] < 0:
+                raise TypeError("best_of must be a positive integer.")
+            best_of = args["gen_args"]["best_of"]
             output_scores = True
 
         if len(stopping_criterion) == 0:
@@ -295,16 +306,40 @@ class GPTHF(GPTAuto):
 
         # Generate
         output = {}
+        best_of_idx = 0
+        
         input_ids = self.tokenizer.encode(prompt, return_tensors='pt').to(self.device)
-        outputs = self.model.sample(
-            input_ids=input_ids,
-            logits_warper=logits_warper,
-            logits_processor=logits_processor,
-            stopping_criteria=stopping_criteria,
-            pad_token_id=self.tokenizer.eos_token_id,
-            eos_token_id=eos_token_id,
-            output_scores=output_scores,
-        )
+        outputs = None
+        if best_of is None:
+            outputs = self.model.sample(
+                input_ids=input_ids,
+                logits_warper=logits_warper,
+                logits_processor=logits_processor,
+                stopping_criteria=stopping_criteria,
+                pad_token_id=self.tokenizer.eos_token_id,
+                eos_token_id=eos_token_id,
+                output_scores=output_scores
+            )
+        else:
+            best_of_outputs = []
+            best_of_sequences = []
+            for i in range(best_of):
+                outputs = self.model.sample(
+                    input_ids=input_ids,
+                    logits_warper=logits_warper,
+                    logits_processor=logits_processor,
+                    stopping_criteria=stopping_criteria,
+                    pad_token_id=self.tokenizer.eos_token_id,
+                    eos_token_id=eos_token_id,
+                    output_scores=output_scores
+                )
+                scores = []
+                for token_idx in range(len(outputs.sequences[0]) - prompt_length):
+                    scores.append(outputs.scores[token_idx][0][outputs.sequences[0][token_idx + prompt_length]].detach().item())
+                best_of_sequences.append(torch.tensor(scores).mean().detach().item())
+                best_of_outputs.append(outputs)
+            best_of_idx = best_of_sequences.index(max(best_of_sequences))
+            outputs = best_of_outputs[best_of_idx]
 
         output["output"] = self.tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
         if softprompt:
