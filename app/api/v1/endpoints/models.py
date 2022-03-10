@@ -32,7 +32,7 @@ async def load_model(request: ModelLoadRequest, current_user: User = Depends(get
                 raise HTTPException(status_code=400, detail="Model already loaded")
 
     try:
-        model = GPTHF(model_name=request.model, parallelize=request.parallel, sharded=request.sharded)
+        model = GPTHF(model_name=request.model, parallelize=request.parallel, sharded=request.sharded, quantized=request.quantized)
         gpt_models.append(model)
 
         return {"message": f"Successfully loaded model: {request.model}"}

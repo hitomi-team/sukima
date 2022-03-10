@@ -5,7 +5,7 @@ asyncpg
 pydantic
 alembic
 sqlalchemy
-torch
+bitsandbytes-cuda113
 numpy
 transformers
 bcrypt

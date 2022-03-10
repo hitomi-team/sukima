@@ -25,6 +25,11 @@ from mkultra.inference import AutoModelSoftPromptLM
 from mkultra.tokenizers import GPT2SPTokenizerFast
 from mkultra.soft_prompt import SoftPrompt
 
+try:
+    import transformers
+    from app.gpt.quantization import GPTJBlock, GPTJForCausalLM
+except ImportError:
+    pass # don't do quantization
 
 class Checkpoint(MutableMapping):
     def __init__(self, chkpt_dir, device="cpu"):
@@ -64,7 +69,7 @@ class Checkpoint(MutableMapping):
 
 
 class GPTHF(GPTAuto):
-    def __init__(self, model_name='hakurei/gpt-j-random-tinier', device=None, parallelize=False, sharded=False):
+    def __init__(self, model_name='hakurei/gpt-j-random-tinier', device=None, parallelize=False, sharded=False, quantized=False):
         super().__init__(model_name=model_name)
 
         if device is None:
@@ -77,11 +82,17 @@ class GPTHF(GPTAuto):
             self.model = AutoModelSoftPromptLM.from_pretrained(
                 pretrained_model_name_or_path=None, config=model_cfg, state_dict=Checkpoint(model_name, self.device), torch_dtype=torch.float16
             ).eval().to(self.device)
-
-        else:
+        elif (not sharded) and (not quantized):
             self.model = AutoModelSoftPromptLM.from_pretrained(model_name, return_dict_in_generate=True).to(self.device)
 
-        self.tokenizer = GPT2SPTokenizerFast.from_pretrained(model_name)
+        if quantized:
+            self.quantized = True
+            print('quantized')
+            transformers.models.gptj.modeling_gptj.GPTJBlock = GPTJBlock  # monkey-patch GPT-J
+            self.model = GPTJForCausalLM.from_pretrained(model_name, low_cpu_mem_usage=True, return_dict_in_generate=True).eval().to(self.device)
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        else:
+            self.tokenizer = GPT2SPTokenizerFast.from_pretrained(model_name)
 
         if parallelize:
             self.model.parallelize()
@@ -111,8 +122,10 @@ class GPTHF(GPTAuto):
             softprompt = SoftPrompt(tensor, metadata)
             sp_ids = [[id] for id in softprompt.get_special_token_ids()]
         else:
-            sp_ids = [[id] for id in SoftPrompt.get_special_token_ids()]
-        logits_processors.append(NoBadWordsLogitsProcessor(sp_ids, None))
+            if not self.quantized:
+                sp_ids = [[id] for id in SoftPrompt.get_special_token_ids()]
+        if not self.quantized:
+            logits_processors.append(NoBadWordsLogitsProcessor(sp_ids, None))
 
         if "prompt" not in args:
             raise KeyError("Arguments must contain a prompt")
