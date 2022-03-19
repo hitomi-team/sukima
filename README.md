@@ -14,6 +14,8 @@ To view more information for API Usage, see ``/docs`` endpoint.
 ### Setup
 [Setup Guide](../../wiki/Setup)
 
+[Usage Guide](../../wiki/Usage)
+
 ### Todo
 - Autoscaling
 - HTTPS Support
