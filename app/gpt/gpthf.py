@@ -76,8 +76,12 @@ class GPTHF(GPTAuto):
         
         model_dtype = torch.float32
         if device is None:
-            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            model_dtype = torch.float16
+            if torch.cuda.is_available():
+                device = torch.device('cuda')
+                model_dtype = torch.float16
+            else:
+                device = torch.device('cpu')
+                model_dtype = torch.float32
 
         self.device = device
 
