@@ -73,19 +73,21 @@ class Checkpoint(MutableMapping):
 class GPTHF(GPTAuto):
     def __init__(self, model_name='hakurei/gpt-j-random-tinier', device=None, parallelize=False, sharded=False, quantized=False):
         super().__init__(model_name=model_name)
-
+        
+        model_dtype = torch.float32
         if device is None:
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            model_dtype = torch.float16
 
         self.device = device
 
         if sharded:
             model_cfg = AutoConfig.from_pretrained(model_name, return_dict_in_generate=True)
             self.model = AutoModelSoftPromptLM.from_pretrained(
-                pretrained_model_name_or_path=None, config=model_cfg, state_dict=Checkpoint(model_name, self.device), torch_dtype=torch.float16
+                pretrained_model_name_or_path=None, config=model_cfg, state_dict=Checkpoint(model_name, self.device), torch_dtype=model_dtype
             ).eval().to(self.device)
         elif (not sharded) and (not quantized):
-            self.model = AutoModelSoftPromptLM.from_pretrained(model_name, return_dict_in_generate=True, torch_dtype=torch.float16).eval().to(self.device)
+            self.model = AutoModelSoftPromptLM.from_pretrained(model_name, return_dict_in_generate=True, torch_dtype=model_dtype).eval().to(self.device)
 
         if quantized:
             self.quantized = True
