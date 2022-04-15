@@ -104,7 +104,7 @@ class GPTHF(GPTAuto):
             self.model = AutoModelSoftPromptLM.from_pretrained(
                 pretrained_model_name_or_path=None, config=model_cfg, state_dict=Checkpoint(model_name, self.device), torch_dtype=model_dtype
             ).eval().to(self.device)
-        elif (not sharded) and (not quantized) and (not tensorized):
+        elif (not sharded) and (not quantized) and (not self.tensorized):
             self.model = AutoModelSoftPromptLM.from_pretrained(model_name, return_dict_in_generate=True, torch_dtype=model_dtype).eval().to(self.device)
 
         if quantized:
