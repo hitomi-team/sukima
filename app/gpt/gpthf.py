@@ -2,6 +2,7 @@ from typing import Type, Optional
 import torch
 
 from app.core.config import settings
+from app.core.logging import logger
 from app.gpt.gptauto import GPTAuto
 from app.gpt.tensorize import tensorize, untensorize
 from app.gpt.warpers import *
@@ -99,7 +100,7 @@ class GPTHF(GPTAuto):
 
         if quantized:
             self.quantized = True
-            print('quantized')
+            logger.info(f'Quantized model {model_name}')
             transformers.models.gptj.modeling_gptj.GPTJBlock = GPTJBlock  # monkey-patch GPT-J
             self.model = GPTJForCausalLM.from_pretrained(model_name, low_cpu_mem_usage=True, return_dict_in_generate=True).eval().to(self.device)
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -109,6 +110,7 @@ class GPTHF(GPTAuto):
 
         if tensorized:
             # check if model file exists in ./storage/{model_name}.model
+            logger.info(f'Tensorized model {model_name}')
             tensorized_path = Path(settings.STORAGE_PATH) / Path(model_name.split('/')[-1])
             if not Path(str(tensorized_path) + '.model').exists():
                 # tensorize model

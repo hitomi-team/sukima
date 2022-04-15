@@ -1,3 +1,4 @@
+from app.core.logging import logging
 from typing import Dict, List, Tuple
 from mmappickle import mmapdict
 import numpy as np
@@ -67,11 +68,11 @@ def replace_tensors(m: torch.nn.Module, tensors: List[Dict], device: torch.devic
             module.register_buffer(name, torch.as_tensor(read_tensor(array), device=device))
 
 def tensorize(m: torch.nn.Module, path: str) -> None:
-    print(f'Tensorizing to {path}')
+    logging.info(f'Tensorizing to {path}')
     model_map = mmapdict(path+'.model')
     b = time.time()
     m_copy, m_tensors = extract_tensors(m)
-    print(f'Model tensors and skeleton extracted in {(time.time()-b):.2f}s, {(psutil.Process(os.getpid()).memory_info().rss / 1024 ** 3):.2f}gb CPU RAM used')
+    logging.info(f'Model tensors and skeleton extracted in {(time.time()-b):.2f}s, {(psutil.Process(os.getpid()).memory_info().rss / 1024 ** 3):.2f}gb CPU RAM used')
 
     model_map['skeleton'] = m_copy
     model_map['tensors'] = m_tensors
@@ -79,15 +80,15 @@ def tensorize(m: torch.nn.Module, path: str) -> None:
 def untensorize(path: str, device: torch.device) -> torch.nn.Module:
     model_map = mmapdict(path+'.model')
 
-    print(f'Loading {path}')
+    logging.info(f'Loading {path}')
 
     b = time.time()
     m = model_map['skeleton'].to(device)
-    print(f'Model object skeleton loaded in {(time.time()-b):.2f}s')
+    logging.info(f'Model object skeleton loaded in {(time.time()-b):.2f}s')
 
     b = time.time()
     t = model_map['tensors']
     replace_tensors(m, t, device)
-    print(f'Model tensors loaded in {(time.time()-b):.2f}s, {(psutil.Process(os.getpid()).memory_info().rss / 1024 ** 3):.2f}gb CPU RAM used')
+    logging.info(f'Model tensors loaded in {(time.time()-b):.2f}s, {(psutil.Process(os.getpid()).memory_info().rss / 1024 ** 3):.2f}gb CPU RAM used')
 
     return m
