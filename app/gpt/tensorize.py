@@ -67,8 +67,11 @@ def replace_tensors(m: torch.nn.Module, tensors: List[Dict], device: torch.devic
             module.register_buffer(name, torch.as_tensor(read_tensor(array), device=device))
 
 def tensorize(m: torch.nn.Module, path: str) -> None:
+    print(f'Tensorizing to {path}')
     model_map = mmapdict(path+'.model')
+    b = time.time()
     m_copy, m_tensors = extract_tensors(m)
+    print(f'Model tensors and skeleton extracted in {(time.time()-b):.2f}s, {(psutil.Process(os.getpid()).memory_info().rss / 1024 ** 3):.2f}gb CPU RAM used')
 
     model_map['skeleton'] = m_copy
     model_map['tensors'] = m_tensors

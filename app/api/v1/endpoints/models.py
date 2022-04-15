@@ -34,13 +34,13 @@ async def load_model(request: ModelLoadRequest, current_user: User = Depends(get
                 raise HTTPException(status_code=400, detail="Model already loaded")
 
     try:
-        model = GPTHF(model_name=request.model, device=request.device, parallelize=request.parallel, sharded=request.sharded, quantized=request.quantized)
+        model = GPTHF(model_name=request.model, device=request.device, parallelize=request.parallel, sharded=request.sharded, quantized=request.quantized, tensorized=request.tensorize)
         gpt_models.append(model)
 
         return {"message": f"Successfully loaded model: {request.model}"}
 
     except Exception as e:
-        return HTTPException(status_code=400, detail=f"Unsupported model type: {request.model}\n{e}")
+        return HTTPException(status_code=400, detail=f"Unable to load the model!\n{e}\n{traceback.format_exc()}")
 
 
 @router.post("/generate")
@@ -56,7 +56,7 @@ async def generate(request: ModelGenRequest, current_user: User = Depends(get_cu
             try:
                 return m.generate(request.dict(), db_softprompt=db_softprompt)
             except Exception as e:
-                raise HTTPException(status_code=400, detail=f"Invalid request body!\n{e}\n{traceback.format_exc()}")
+                raise HTTPException(status_code=400, detail=f"Unable to generate!\n{e}\n{traceback.format_exc()}")
 
     raise HTTPException(status_code=404, detail="Model not found.")
 

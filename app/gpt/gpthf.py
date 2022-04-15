@@ -3,6 +3,7 @@ import torch
 
 from app.core.config import settings
 from app.gpt.gptauto import GPTAuto
+from app.gpt.tensorize import tensorize, untensorize
 from app.gpt.warpers import *
 from app.models.soft_prompt import SoftPrompt as SoftPromptModel
 from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
@@ -71,7 +72,7 @@ class Checkpoint(MutableMapping):
 
 
 class GPTHF(GPTAuto):
-    def __init__(self, model_name='hakurei/gpt-j-random-tinier', device=None, parallelize=False, sharded=False, quantized=False):
+    def __init__(self, model_name='hakurei/gpt-j-random-tinier', device=None, parallelize=False, sharded=False, quantized=False, tensorized=False):
         super().__init__(model_name=model_name)
         
         model_dtype = torch.float32
@@ -83,7 +84,7 @@ class GPTHF(GPTAuto):
                 device = torch.device('cpu')
                 model_dtype = torch.float32
         else:
-            if device.type == 'cuda':
+            if device == 'cuda':
                 model_dtype = torch.float16
 
         self.device = device
@@ -105,6 +106,19 @@ class GPTHF(GPTAuto):
         else:
             self.quantized = False
             self.tokenizer = GPT2SPTokenizerFast.from_pretrained(model_name)
+
+        if tensorized:
+            # check if model file exists in ./storage/{model_name}.model
+            tensorized_path = Path(settings.STORAGE_PATH) / Path(model_name.split('/')[-1])
+            if not Path(str(tensorized_path) + '.model').exists():
+                # tensorize model
+                tensorize(self.model, str(tensorized_path))
+            else:
+                # load tensorized model. if parallelize, we need to load the model in cpu first. TODO: fix this!
+                if parallelize:
+                    self.model = untensorize(str(tensorized_path), device=torch.device('cpu'))
+                else:
+                    self.model = untensorize(str(tensorized_path), self.device)
 
         if parallelize:
             self.model.parallelize()
