@@ -7,6 +7,19 @@ import time
 import psutil
 import os
 
+def read_tensor(item):
+    dtype = item.dtype
+    shape = item.shape
+    buffer = memoryview(item)
+    arr = np.ndarray.__new__(
+        np.memmap,
+        dtype=dtype,
+        shape=shape,
+        buffer=buffer,
+        offset=0
+    )
+    return arr
+
 def extract_tensors(m: torch.nn.Module) -> Tuple[torch.nn.Module, List[Dict]]:
     """
     Remove the tensors from a PyTorch model, convert them to NumPy
@@ -49,9 +62,9 @@ def replace_tensors(m: torch.nn.Module, tensors: List[Dict], device: torch.devic
     for module, tensor_dict in zip(modules, tensors):
         # There are separate APIs to set parameters and buffers.
         for name, array in tensor_dict["params"].items():
-            module.register_parameter(name, torch.nn.Parameter(torch.as_tensor(array, device=device)))
+            module.register_parameter(name, torch.nn.Parameter(torch.as_tensor(read_tensor(array), device=device)))
         for name, array in tensor_dict["buffers"].items():
-            module.register_buffer(name, torch.as_tensor(array, device=device))
+            module.register_buffer(name, torch.as_tensor(read_tensor(array), device=device))
 
 def tensorize(m: torch.nn.Module, path: str) -> None:
     model_map = mmapdict(path+'.model')
