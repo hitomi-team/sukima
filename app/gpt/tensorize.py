@@ -1,6 +1,8 @@
 from app.core.logging import logging
+from app.gpt.quantization import FrozenBNBEmbedding, FrozenBNBLinear
 from typing import Dict, List, Tuple
 from mmappickle import mmapdict
+from torch import nn
 import numpy as np
 import copy
 import torch
@@ -30,28 +32,27 @@ def extract_tensors(m: torch.nn.Module) -> Tuple[torch.nn.Module, List[Dict]]:
     for _, module in m.named_modules():
         # Store the tensors in Python dictionaries
         params = {
-            name: torch.clone(param).detach().numpy()
+            name: torch.clone(param).detach().cpu().numpy()
             for name, param in module.named_parameters(recurse=False)
         }
         buffers = {
-            name: torch.clone(buf).detach().numpy()
+            name: torch.clone(buf).detach().cpu().numpy()
             for name, buf in module.named_buffers(recurse=False)
         }
         tensors.append({"params": params, "buffers": buffers})
     
     # Make a copy of the original model and strip all tensors and
     # buffers out of the copy.
-    m_copy = copy.deepcopy(m)
-    for _, module in m_copy.named_modules():
+    for _, module in m.named_modules():
         for name in ([name for name, _ in module.named_parameters(recurse=False)]
                      + [name for name, _ in module.named_buffers(recurse=False)]):
             setattr(module, name, None)   
 
     # Make sure the copy is configured for inference.
-    m_copy.train(False)
-    return m_copy, tensors
+    m.train(False)
+    return m, tensors
 
-def replace_tensors(m: torch.nn.Module, tensors: List[Dict], device: torch.device):
+def replace_tensors(m: torch.nn.Module, tensors: List[Dict], device: torch.device, quantized: bool=False):
     """
     Restore the tensors that extract_tensors() stripped out of a 
     PyTorch model.
@@ -66,6 +67,47 @@ def replace_tensors(m: torch.nn.Module, tensors: List[Dict], device: torch.devic
             module.register_parameter(name, torch.nn.Parameter(torch.as_tensor(read_tensor(array), device=device)))
         for name, array in tensor_dict["buffers"].items():
             module.register_buffer(name, torch.as_tensor(read_tensor(array), device=device))
+    
+    if quantized:
+        for module in m.modules():
+            for name, child in module.named_children():
+                if isinstance(child, nn.Linear):
+                    setattr(
+                        module,
+                        name,
+                        FrozenBNBLinear(
+                            weight=torch.zeros(
+                                child.out_features,
+                                child.in_features,
+                                dtype=torch.uint8,
+                                device=device
+                            ),
+                            absmax=torch.zeros(
+                                (child.weight.numel() - 1) // 4096 + 1,
+                                device=device
+                            ),
+                            code=torch.zeros(256, device=device),
+                            bias=child.bias
+                        )
+                    )
+                elif isinstance(child, nn.Embedding):
+                    setattr(
+                        module,
+                        name,
+                        FrozenBNBEmbedding(
+                            weight=torch.zeros(
+                                child.num_embeddings,
+                                child.embedding_dim,
+                                dtype=torch.uint8,
+                                device=device
+                            ),
+                            absmax=torch.zeros(
+                                (child.weight.numel() - 1) // 4096 + 1,
+                                device=device
+                            ),
+                            code=torch.zeros(256)
+                        )
+                    )
 
 def tensorize(m: torch.nn.Module, path: str) -> None:
     logging.info(f'Tensorizing to {path}')
@@ -77,7 +119,7 @@ def tensorize(m: torch.nn.Module, path: str) -> None:
     model_map['skeleton'] = m_copy
     model_map['tensors'] = m_tensors
 
-def untensorize(path: str, device: torch.device) -> torch.nn.Module:
+def untensorize(path: str, device: torch.device, quantized: bool = False) -> torch.nn.Module:
     model_map = mmapdict(path+'.model')
 
     logging.info(f'Loading {path}')
@@ -88,7 +130,7 @@ def untensorize(path: str, device: torch.device) -> torch.nn.Module:
 
     b = time.time()
     t = model_map['tensors']
-    replace_tensors(m, t, device)
+    replace_tensors(m, t, device, quantized)
     logging.info(f'Model tensors loaded in {(time.time()-b):.2f}s, {(psutil.Process(os.getpid()).memory_info().rss / 1024 ** 3):.2f}gb CPU RAM used')
 
     return m

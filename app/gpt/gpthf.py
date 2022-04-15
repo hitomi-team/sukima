@@ -90,37 +90,44 @@ class GPTHF(GPTAuto):
 
         self.device = device
 
+        self.tensorized = False
+        if tensorized:
+            # check if tensorized model already exists so we can skip expensive model loading below
+            tensorized_path = Path(settings.STORAGE_PATH) / Path(model_name.split('/')[-1])
+            if Path(str(tensorized_path) + '.model').exists():
+                logger.info(f'Loading tensorized model {model_name}')
+                self.model = untensorize(str(tensorized_path), self.device, quantized=quantized)
+                self.tensorized = True
+
         if sharded:
             model_cfg = AutoConfig.from_pretrained(model_name, return_dict_in_generate=True)
             self.model = AutoModelSoftPromptLM.from_pretrained(
                 pretrained_model_name_or_path=None, config=model_cfg, state_dict=Checkpoint(model_name, self.device), torch_dtype=model_dtype
             ).eval().to(self.device)
-        elif (not sharded) and (not quantized):
+        elif (not sharded) and (not quantized) and (not tensorized):
             self.model = AutoModelSoftPromptLM.from_pretrained(model_name, return_dict_in_generate=True, torch_dtype=model_dtype).eval().to(self.device)
 
         if quantized:
             self.quantized = True
-            logger.info(f'Quantized model {model_name}')
+            logger.info(f'Quantizing model {model_name}')
             transformers.models.gptj.modeling_gptj.GPTJBlock = GPTJBlock  # monkey-patch GPT-J
-            self.model = GPTJForCausalLM.from_pretrained(model_name, low_cpu_mem_usage=True, return_dict_in_generate=True).eval().to(self.device)
+            if not self.tensorized:
+                self.model = GPTJForCausalLM.from_pretrained(model_name, low_cpu_mem_usage=True, return_dict_in_generate=True).eval().to(self.device)
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+            logger.info(f'Quantization complete.')
         else:
             self.quantized = False
             self.tokenizer = GPT2SPTokenizerFast.from_pretrained(model_name)
 
-        if tensorized:
+        if (tensorized) and (not self.tensorized):
             # check if model file exists in ./storage/{model_name}.model
-            logger.info(f'Tensorized model {model_name}')
             tensorized_path = Path(settings.STORAGE_PATH) / Path(model_name.split('/')[-1])
             if not Path(str(tensorized_path) + '.model').exists():
+                logger.info(f'Tensorizing model {model_name}')
                 # tensorize model
                 tensorize(self.model, str(tensorized_path))
-            else:
-                # load tensorized model. if parallelize, we need to load the model in cpu first. TODO: fix this!
-                if parallelize:
-                    self.model = untensorize(str(tensorized_path), device=torch.device('cpu'))
-                else:
-                    self.model = untensorize(str(tensorized_path), self.device)
+                del self.model
+                raise Exception('Tensorized the model! The original model has been altered, please load the model again to use the tensorized model.')
 
         if parallelize:
             self.model.parallelize()
