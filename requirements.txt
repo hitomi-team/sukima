@@ -12,4 +12,3 @@ bcrypt
 passlib
 mmappickle
 psutil
-git+https://github.com/harubaru/mkultra.git
