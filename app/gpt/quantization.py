@@ -103,7 +103,6 @@ def convert_to_int8(model):
     for module in model.modules():
         for name, child in module.named_children():
             if isinstance(child, nn.Linear):
-                print(name, child)
                 setattr( 
                     module,
                     name,
@@ -132,14 +131,29 @@ class GPTJBlock(transformers.models.gptj.modeling_gptj.GPTJBlock):
         convert_to_int8(self.attn)
         convert_to_int8(self.mlp)
 
-
 class GPTJModel(transformers.models.gptj.modeling_gptj.GPTJModel):
     def __init__(self, config):
         super().__init__(config)
         convert_to_int8(self)
-        
 
 class GPTJForCausalLM(transformers.models.gptj.modeling_gptj.GPTJForCausalLM):
+    def __init__(self, config):
+        super().__init__(config)
+        convert_to_int8(self)
+
+class GPTNeoBlock(transformers.models.gpt_neo.modeling_gpt_neo.GPTNeoBlock):
+    def __init__(self, config, layer_id):
+        super().__init__(config, layer_id)
+
+        convert_to_int8(self.attn)
+        convert_to_int8(self.mlp)
+
+class GPTNeoModel(transformers.models.gpt_neo.modeling_gpt_neo.GPTNeoModel):
+    def __init__(self, config):
+        super().__init__(config)
+        convert_to_int8(self)
+
+class GPTNeoForCausalLM(transformers.models.gpt_neo.modeling_gpt_neo.GPTNeoForCausalLM):
     def __init__(self, config):
         super().__init__(config)
         convert_to_int8(self)

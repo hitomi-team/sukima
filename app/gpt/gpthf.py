@@ -2,7 +2,10 @@ from typing import Type, Optional
 import torch
 
 from app.core.config import settings
+from app.core.logging import logger
 from app.gpt.gptauto import GPTAuto
+from app.gpt.softprompt import SoftPrompt, AutoModelForSoftPromptLM, current_sp, resize_model_embeddings
+from app.gpt.tensorize import tensorize, untensorize
 from app.gpt.warpers import *
 from app.models.soft_prompt import SoftPrompt as SoftPromptModel
 from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
@@ -22,10 +25,6 @@ from pathlib import Path
 
 import numpy as np
 import zlib
-
-from mkultra.inference import AutoModelSoftPromptLM
-from mkultra.tokenizers import GPT2SPTokenizerFast
-from mkultra.soft_prompt import SoftPrompt
 
 try:
     import transformers
@@ -71,7 +70,7 @@ class Checkpoint(MutableMapping):
 
 
 class GPTHF(GPTAuto):
-    def __init__(self, model_name='hakurei/gpt-j-random-tinier', device=None, parallelize=False, sharded=False, quantized=False):
+    def __init__(self, model_name='hakurei/gpt-j-random-tinier', device=None, parallelize=False, sharded=False, quantized=False, tensorized=False):
         super().__init__(model_name=model_name)
         
         model_dtype = torch.float32
@@ -83,28 +82,50 @@ class GPTHF(GPTAuto):
                 device = torch.device('cpu')
                 model_dtype = torch.float32
         else:
-            if device.type == 'cuda':
+            if device == 'cuda':
                 model_dtype = torch.float16
 
         self.device = device
 
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+        self.tensorized = False
+        if tensorized:
+            # check if tensorized model already exists so we can skip expensive model loading below
+            tensorized_path = Path(settings.STORAGE_PATH) / Path(model_name.split('/')[-1])
+            if Path(str(tensorized_path) + '.model').exists():
+                logger.info(f'Loading tensorized model {model_name}')
+                self.model = untensorize(str(tensorized_path), self.device, quantized=quantized)
+                self.tensorized = True
+
         if sharded:
             model_cfg = AutoConfig.from_pretrained(model_name, return_dict_in_generate=True)
-            self.model = AutoModelSoftPromptLM.from_pretrained(
+            self.model = AutoModelForSoftPromptLM.from_pretrained(
                 pretrained_model_name_or_path=None, config=model_cfg, state_dict=Checkpoint(model_name, self.device), torch_dtype=model_dtype
             ).eval().to(self.device)
-        elif (not sharded) and (not quantized):
-            self.model = AutoModelSoftPromptLM.from_pretrained(model_name, return_dict_in_generate=True, torch_dtype=model_dtype).eval().to(self.device)
+        elif (not sharded) and (not quantized) and (not self.tensorized):
+            self.model = AutoModelForSoftPromptLM.from_pretrained(model_name, return_dict_in_generate=True, torch_dtype=model_dtype).eval().to(self.device)
 
         if quantized:
             self.quantized = True
-            print('quantized')
+            logger.info(f'Quantizing model {model_name}')
+            # we assume this is a gptj model - TODO: fix this
             transformers.models.gptj.modeling_gptj.GPTJBlock = GPTJBlock  # monkey-patch GPT-J
-            self.model = GPTJForCausalLM.from_pretrained(model_name, low_cpu_mem_usage=True, return_dict_in_generate=True).eval().to(self.device)
-            self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+            if not self.tensorized:
+                self.model = AutoModelForSoftPromptLM.from_pretrained(model_name, low_cpu_mem_usage=True, return_dict_in_generate=True).eval().to(self.device)
+            logger.info(f'Quantization complete.')
         else:
             self.quantized = False
-            self.tokenizer = GPT2SPTokenizerFast.from_pretrained(model_name)
+
+        if (tensorized) and (not self.tensorized):
+            # check if model file exists in ./storage/{model_name}.model
+            tensorized_path = Path(settings.STORAGE_PATH) / Path(model_name.split('/')[-1])
+            if not Path(str(tensorized_path) + '.model').exists():
+                logger.info(f'Tensorizing model {model_name}')
+                # tensorize model
+                tensorize(self.model, str(tensorized_path))
+                del self.model
+                raise Exception('Tensorized the model! The original model has been altered, please load the model again to use the tensorized model.')
 
         if parallelize:
             self.model.parallelize()
@@ -125,27 +146,17 @@ class GPTHF(GPTAuto):
             raise TypeError("Arguments must be a dictionary")
 
         if db_softprompt:
-            metadata = {
-                'name': db_softprompt.name,
-                'uuid': db_softprompt.id,
-                'epoch': '',
-                'description': db_softprompt.description
-            }
             tbuf = np.frombuffer(zlib.decompress(db_softprompt.read()), dtype=np.float16)
             tensor = torch.from_numpy(np.array(tbuf).reshape(20, len(tbuf)//20)).to(self.device)
-            softprompt = SoftPrompt(tensor, metadata)
-            sp_ids = [[id] for id in softprompt.get_special_token_ids()]
-        else:
-            if not self.quantized:
-                sp_ids = [[id] for id in SoftPrompt.get_special_token_ids()]
-        if not self.quantized:
+            softprompt = SoftPrompt(softembedding=tensor)
+            sp_ids = [[id] for id in softprompt.get_special_ids()]
             logits_processors.append(NoBadWordsLogitsProcessor(sp_ids, None))
 
         if "prompt" not in args:
             raise KeyError("Arguments must contain a prompt")
         else:
             if softprompt:
-                prompt = softprompt + args["prompt"]
+                prompt = softprompt.get_special_str() + args["prompt"]
             else:
                 prompt = args["prompt"]
 
@@ -316,12 +327,21 @@ class GPTHF(GPTAuto):
         # Generate
         output = {}
         best_of_idx = 0
+
+        global current_sp
+        current_sp = softprompt
+        if softprompt:
+            sp_tokenizer = softprompt.get_tokenizer(self.tokenizer)
+            resize_model_embeddings(self.model, sp_tokenizer)
+            input_ids = sp_tokenizer(prompt, return_tensors='pt').to(self.device)
+        else:
+            resize_model_embeddings(self.model, self.tokenizer)
+            input_ids = self.tokenizer(prompt, return_tensors='pt').to(self.device)
         
-        input_ids = self.tokenizer.encode(prompt, return_tensors='pt').to(self.device)
         outputs = None
         if best_of is None:
             outputs = self.model.sample(
-                input_ids=input_ids,
+                **input_ids,
                 logits_warper=logits_warper,
                 logits_processor=logits_processor,
                 stopping_criteria=stopping_criteria,
@@ -334,7 +354,7 @@ class GPTHF(GPTAuto):
             best_of_sequences = []
             for i in range(best_of):
                 outputs = self.model.sample(
-                    input_ids=input_ids,
+                    **input_ids,
                     logits_warper=logits_warper,
                     logits_processor=logits_processor,
                     stopping_criteria=stopping_criteria,
@@ -351,9 +371,9 @@ class GPTHF(GPTAuto):
             outputs = best_of_outputs[best_of_idx]
 
         output["output"] = self.tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
-        if softprompt:
-            output["output"] = output["output"][len(softprompt.get_tag_str()):]
-        
+#        if softprompt:
+#            output["output"] = output["output"][len(softprompt.get_special_str()):]
+            
         if "logprobs" in args["gen_args"] and args["gen_args"]["logprobs"]:
             if not isinstance(args["gen_args"]["logprobs"], int) or args["gen_args"]["logprobs"] < 0 or args["gen_args"]["logprobs"] > 20:
                 pass
