@@ -359,3 +359,25 @@ class GPTHF(AutoHF):
             output_probs[i] = torch.mean(torch.stack(token_probs, dim=-1)).item() 
 
         return output_probs
+
+    @torch.inference_mode()
+    def hidden(self, args):
+        # args:
+        #   prompt: str - prompt to extract hidden states from
+        #   layers: int - number of last hidden layers to return
+        
+        if not isinstance(args, dict):
+            raise ValueError('args must be a dictionary.')
+        
+        if 'prompt' not in args or not isinstance(args['prompt'], str):
+            raise ValueError('args must contain a prompt as a string.')
+        
+        if 'layers' not in args or not isinstance(args['layers'], list):
+            raise ValueError('layers must be the last n hidden layers to return.')
+        
+        prompt_inputs = self.tokenizer.encode(args['prompt'], return_tensors='pt').to(self.device)
+
+        hidden_states = self.model(prompt_inputs, output_hidden_states=True).hidden_states
+        layers = {i: torch.mean(hidden_states[i], dim = (1, )).detach().cpu().numpy().tolist() for i in args['layers']}
+        
+        return layers

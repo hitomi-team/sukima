@@ -71,7 +71,7 @@ class BERTHF(AutoHF):
             if not isinstance(label, str):
                 raise ValueError("labels must be a list of integers")
         
-        prompt_inputs = self.tokenizer.encode(args['prompt'], return_tensors='pt')
+        prompt_inputs = self.tokenizer.encode(args['prompt'], return_tensors='pt').to(self.device)
 
         outputs = self.model(prompt_inputs).logits
         outputs = torch.nn.functional.softmax(outputs, dim=1)
@@ -84,3 +84,25 @@ class BERTHF(AutoHF):
             output_probs[args["labels"][i]] = float(outputs[0][i])
 
         return output_probs
+
+    @torch.inference_mode()
+    def hidden(self, args):
+        # args:
+        #   prompt: str - prompt to extract hidden states from
+        #   layers: int - number of last hidden layers to return
+        
+        if not isinstance(args, dict):
+            raise ValueError('args must be a dictionary.')
+        
+        if 'prompt' not in args or not isinstance(args['prompt'], str):
+            raise ValueError('args must contain a prompt as a string.')
+        
+        if 'layers' not in args or not isinstance(args['layers'], list):
+            raise ValueError('layers must be the last n hidden layers to return.')
+        
+        prompt_inputs = self.tokenizer.encode(args['prompt'], return_tensors='pt').to(self.device)
+
+        hidden_states = self.model(prompt_inputs, output_hidden_states=True).hidden_states
+        layers = {i: torch.mean(hidden_states[i], dim = (1, )).detach().cpu().numpy().tolist() for i in args['layers']}
+        
+        return layers

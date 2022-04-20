@@ -61,6 +61,11 @@ class ModelClassifyRequest(BaseModel):
     prompt: str
     labels: List[str]
 
+class ModelHiddenRequest(BaseModel):
+    model: str
+    prompt: str
+    layers: List[int]
+
 class ModelLoadRequest(BaseModel):
     model: str
     parallel: Optional[bool] = False

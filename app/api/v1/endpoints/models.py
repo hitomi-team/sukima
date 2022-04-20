@@ -8,7 +8,7 @@ from app.gpt.berthf import BERTHF
 from app.gpt.gpthf import GPTHF
 from app.gpt.models import gpt_models
 from app.gpt.utils import is_decoder
-from app.schemas.model_item import ModelGenRequest, ModelLoadRequest, ModelClassifyRequest
+from app.schemas.model_item import ModelGenRequest, ModelLoadRequest, ModelClassifyRequest, ModelHiddenRequest
 from app.schemas.user import User
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -77,4 +77,15 @@ async def classify(request: ModelClassifyRequest, current_user: User = Depends(g
             except Exception as e:
                 raise HTTPException(status_code=400, detail=f"Invalid request body!\n{e}")
         
+    raise HTTPException(status_code=404, detail="Model not found.")
+
+@router.post("/hidden")
+async def hidden(request: ModelHiddenRequest, current_user: User = Depends(get_current_approved_user)): # noqa
+    for m in gpt_models:
+        if m.model_name == request.model:
+            try:
+                return m.hidden(request.dict())
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Invalid request body!\n{e}")
+    
     raise HTTPException(status_code=404, detail="Model not found.")
