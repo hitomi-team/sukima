@@ -67,4 +67,4 @@ class ModelLoadRequest(BaseModel):
     sharded: Optional[bool] = False
     quantized: Optional[bool] = False
     tensorize: Optional[bool] = False
-    device: Optional[str] = None
+    device: Optional[str] = 'cpu'

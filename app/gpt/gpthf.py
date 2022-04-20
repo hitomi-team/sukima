@@ -1,25 +1,19 @@
-from typing import Type, Optional
+from typing import Optional
 import torch
 
 from app.core.config import settings
 from app.core.logging import logger
-from app.gpt.gptauto import GPTAuto
+from app.gpt.autohf import AutoHF
 from app.gpt.softprompt import SoftPrompt, AutoModelForSoftPromptLM, current_sp, resize_model_embeddings
 from app.gpt.tensorize import tensorize, untensorize
+from app.gpt.utils import Checkpoint, get_dtype, tensorized_path
 from app.gpt.warpers import *
 from app.models.soft_prompt import SoftPrompt as SoftPromptModel
-from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
+from transformers import (AutoConfig, AutoTokenizer,
                           LogitsProcessorList, MaxLengthCriteria,
                           MaxTimeCriteria, NoBadWordsLogitsProcessor,
                           StoppingCriteriaList, TemperatureLogitsWarper,
                           TopKLogitsWarper, TopPLogitsWarper, MinLengthLogitsProcessor)
-
-from transformers.generation_utils import GenerationMixin
-
-try:
-    from collections.abc import MutableMapping
-except ImportError:
-    from collections import MutableMapping
 
 from pathlib import Path
 
@@ -32,70 +26,21 @@ try:
 except ImportError:
     pass # don't do quantization
 
-class Checkpoint(MutableMapping):
-    def __init__(self, chkpt_dir, device="cpu"):
-        self.device = device
-        self.chkpt_dir = Path(chkpt_dir)
-        self.checkpoint = torch.load(str(chkpt_dir / Path("m.pt")))
-
-    def __len__(self):
-        return len(self.checkpoint)
-
-    def __getitem__(self, key):
-        path = self.chkpt_dir / Path(self.checkpoint[key]).name
-
-        if self.device == "cpu":
-            return torch.load(str(path), map_location=self.device).long()
-        else:
-            return torch.load(str(path), map_location=self.device).half()
-
-    def __setitem__(self, key, value):
-        return
-
-    def __delitem__(self, key, value):
-        return
-
-    def keys(self):
-        return self.checkpoint.keys()
-
-    def __iter__(self):
-        for key in self.checkpoint:
-            yield (key, self.__getitem__(key))
-
-    def __copy__(self):
-        return Checkpoint(self.chkpt_dir, device=self.device)
-
-    def copy(self):
-        return Checkpoint(self.chkpt_dir, device=self.device)
-
-
-class GPTHF(GPTAuto):
+class GPTHF(AutoHF):
     def __init__(self, model_name='hakurei/gpt-j-random-tinier', device=None, parallelize=False, sharded=False, quantized=False, tensorized=False):
-        super().__init__(model_name=model_name)
+        super().__init__(model_name=model_name, decoder=True)
         
-        model_dtype = torch.float32
-        if device is None:
-            if torch.cuda.is_available():
-                device = torch.device('cuda')
-                model_dtype = torch.float16
-            else:
-                device = torch.device('cpu')
-                model_dtype = torch.float32
-        else:
-            if device == 'cuda':
-                model_dtype = torch.float16
-
+        model_dtype = get_dtype(device)
         self.device = device
-
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-
         self.tensorized = False
+
         if tensorized:
             # check if tensorized model already exists so we can skip expensive model loading below
-            tensorized_path = Path(settings.STORAGE_PATH) / Path(model_name.split('/')[-1])
-            if Path(str(tensorized_path) + '.model').exists():
+            _path, exists = tensorized_path(model_name)
+            if exists:
                 logger.info(f'Loading tensorized model {model_name}')
-                self.model = untensorize(str(tensorized_path), self.device, quantized=quantized)
+                self.model = untensorize(str(_path), self.device, quantized=quantized)
                 self.tensorized = True
 
         if sharded:
@@ -119,11 +64,11 @@ class GPTHF(GPTAuto):
 
         if (tensorized) and (not self.tensorized):
             # check if model file exists in ./storage/{model_name}.model
-            tensorized_path = Path(settings.STORAGE_PATH) / Path(model_name.split('/')[-1])
-            if not Path(str(tensorized_path) + '.model').exists():
+            _path, exists = tensorized_path(model_name)
+            if not exists:
                 logger.info(f'Tensorizing model {model_name}')
                 # tensorize model
-                tensorize(self.model, str(tensorized_path))
+                tensorize(self.model, str(_path))
                 del self.model
                 raise Exception('Tensorized the model! The original model has been altered, please load the model again to use the tensorized model.')
 
