@@ -57,7 +57,7 @@ class GPTHF(AutoHF):
             # we assume this is a gptj model - TODO: fix this
             transformers.models.gptj.modeling_gptj.GPTJBlock = GPTJBlock  # monkey-patch GPT-J
             if not self.tensorized:
-                self.model = AutoModelForSoftPromptLM.from_pretrained(model_name, low_cpu_mem_usage=True, return_dict_in_generate=True).eval().to(self.device)
+                self.model = GPTJForCausalLM.from_pretrained(model_name, low_cpu_mem_usage=True, return_dict_in_generate=True).eval().to(self.device)
             logger.info(f'Quantization complete.')
         else:
             self.quantized = False
