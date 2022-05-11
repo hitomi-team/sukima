@@ -1,0 +1,103 @@
+# Environment variables
+
+apiVersion: v1
+data:
+  BACKEND_CORS_ORIGINS: '["http://localhost:8000", "https://localhost:8000", "http://localhost", "https://localhost"]'
+  PROJECT_NAME: sukima-inference-api
+kind: ConfigMap
+metadata:
+  labels:
+    name: inference-server-conf-env
+  name: conf-env
+
+---
+
+# PersistentVolumeClaim
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    name: inference-server-pvc
+  name: inference-server-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+
+---
+
+# Deployment
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    name: server
+  name: server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: server
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        name: server
+    spec:
+      containers:
+        - args:
+            - bash
+            - -c
+            - uvicorn inference.main:app --reload --host 0.0.0.0 --port 8000
+          env:
+            - name: BACKEND_CORS_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  key: BACKEND_CORS_ORIGINS
+                  name: conf-env
+            - name: PROJECT_NAME
+              valueFrom:
+                configMapKeyRef:
+                  key: PROJECT_NAME
+                  name: conf-env
+          image: sukima_inference_server:latest
+          imagePullPolicy: Never
+          name: server
+          ports:
+            - containerPort: 8000
+          resources: {}
+          volumeMounts:
+            - mountPath: /inference/
+              name: inference-server-pvc
+      restartPolicy: Always
+      volumes:
+        - name: inference-server-pvc
+          persistentVolumeClaim:
+            claimName: inference-server-pvc
+status: {}
+
+---
+
+# Service
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: server
+  name: server
+spec:
+  ports:
+    - name: "8000"
+      port: 8000
+      targetPort: 8000
+  selector:
+    name: server
+status:
+  loadBalancer: {}

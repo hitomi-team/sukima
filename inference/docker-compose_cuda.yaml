@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+    server:
+        image: sukima_inference_server:latest
+        build:
+            context: ./
+            dockerfile: Dockerfile
+        env_file:
+            - conf.env
+        ports:
+            - "8000:8000"
+        volumes:
+            - ./:/inference/
+        command: bash -c "uvicorn inference.main:app --reload --host 0.0.0.0 --port 8000"
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          count: 1
+                          capabilities: [ gpu ]

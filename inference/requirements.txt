@@ -1,0 +1,8 @@
+fastapi[all]
+uvicorn[standard]
+pydantic
+bitsandbytes-cuda113
+numpy
+transformers
+mmappickle
+psutil
