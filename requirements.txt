@@ -12,3 +12,4 @@ bcrypt
 passlib
 mmappickle
 psutil
+Pillow

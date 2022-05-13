@@ -6,6 +6,7 @@ import app.crud.soft_prompt as crud
 from app.api.deps import get_current_approved_user, get_session
 from app.gpt.berthf import BERTHF
 from app.gpt.gpthf import GPTHF
+from app.gpt.clip import CLIP
 from app.gpt.models import gpt_models
 from app.gpt.utils import is_decoder
 from app.schemas.model_item import ModelGenRequest, ModelLoadRequest, ModelClassifyRequest, ModelHiddenRequest
@@ -40,7 +41,10 @@ async def load_model(request: ModelLoadRequest, current_user: User = Depends(get
         if is_decoder(AutoConfig.from_pretrained(request.model)):
             model = GPTHF(model_name=request.model, device=request.device, parallelize=request.parallel, sharded=request.sharded, quantized=request.quantized, tensorized=request.tensorize)
         else:
-            model = BERTHF(model_name=request.model, device=request.device, parallelize=request.parallel, sharded=request.sharded, quantized=request.quantized, tensorized=request.tensorize)
+            if not ('clip' in request.model):
+                model = BERTHF(model_name=request.model, device=request.device, parallelize=request.parallel, sharded=request.sharded, quantized=request.quantized, tensorized=request.tensorize)
+            else:
+                model = CLIP(model_name=request.model, device=request.device, parallelize=request.parallel, sharded=request.sharded, quantized=request.quantized, tensorized=request.tensorize)
 
         gpt_models.append(model)
 
