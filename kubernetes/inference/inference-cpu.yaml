@@ -69,6 +69,7 @@ spec:
           image: sukima_inference_server:latest
           imagePullPolicy: Never
           name: server
+          workingDir: /inference
           ports:
             - containerPort: 8000
           resources: {}

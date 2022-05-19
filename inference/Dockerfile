@@ -6,8 +6,8 @@ ENV PORT=8000
 
 RUN mkdir /inference
 WORKDIR /inference
+COPY ./inference /inference
 
-COPY . /inference
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir torch==1.11.0+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html
 RUN pip install --no-cache-dir -r requirements.txt
