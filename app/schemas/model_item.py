@@ -59,7 +59,7 @@ class ModelGenRequest(BaseModel):
 class ModelClassifyRequest(BaseModel):
     model: str
     prompt: str
-    labels: List[str]
+    labels: list
 
 class ModelHiddenRequest(BaseModel):
     model: str

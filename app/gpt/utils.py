@@ -62,7 +62,7 @@ def get_dtype(device: torch.device):
 
 def is_decoder(config: AutoConfig):
     decoder_types = ['gpt2', 'gptj', 'gpt_neo', 'gpt_neox', 'xglm']
-    encoder_types = ['distilbert', 'bert', 'xlm', 'xlm-roberta', 'roberta']
+    encoder_types = ['distilbert', 'bert', 'xlm', 'xlm-roberta', 'roberta', 'clip']
 
     if config.model_type in decoder_types:
         return True
