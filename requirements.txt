@@ -13,3 +13,4 @@ passlib
 mmappickle
 psutil
 Pillow
+openai

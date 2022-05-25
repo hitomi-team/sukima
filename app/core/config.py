@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     DATABASE_URI: Optional[str] = None
     STORAGE_PATH: PathLike = Path.cwd() / "storage"
 
+    OPENAI_API_KEY: Optional[str] = None
+    OPENAI_API_BASE: Optional[str] = None
+
     @validator("DATABASE_URI", pre=True)
     def assemble_db_connection(cls, v: Optional[str], values: Dict[str, Any]) -> Any:
         if isinstance(v, str):
