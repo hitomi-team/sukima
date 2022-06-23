@@ -9,7 +9,7 @@ from transformers import AutoTokenizer
 import openai
 
 class OpenAI(AutoHF):
-    def __init__(self, model_name='convo-6B', decoder=True):
+    def __init__(self, model_name='convo-6b', decoder=True):
         self.model_name = model_name
         self.decoder = decoder
 
@@ -41,7 +41,9 @@ class OpenAI(AutoHF):
         
         temperature = sample_args.get('temperature', 1.0)
         top_p = sample_args.get('top_p', 1.0)
-        frequency_penalty = sample_args.get('rep_p', 1.0)
+        top_k = sample_args.get('top_k', 128)
+        tfs = sample_args.get('tfs', 0.99)
+        repetition_penalty = sample_args.get('rep_p', 1.0)
 
         logit_bias = {}
         bad_words = sample_args.get('bad_words', None)
@@ -84,7 +86,9 @@ class OpenAI(AutoHF):
             stop = stop,
             temperature = temperature,
             top_p = top_p,
-            frequency_penalty = frequency_penalty,
+            top_k = top_k,
+            tfs = tfs,
+            repetition_penalty = repetition_penalty,
             logit_bias = logit_bias,
         ).choices[0].text
 
