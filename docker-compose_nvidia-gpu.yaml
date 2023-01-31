@@ -9,8 +9,10 @@ services:
             - conf.env
         ports:
             - "8000:8000"
+        runtime: nvidia
         volumes:
             - ./:/sukima/
+            - /opt/cuda:/usr/local/cuda
         command: bash -c "alembic upgrade head && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
         depends_on:
             - database
