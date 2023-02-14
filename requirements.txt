@@ -6,7 +6,7 @@ pydantic
 alembic
 sqlalchemy
 bitsandbytes-cuda113
-numpy
+numpy==1.19.5
 transformers
 bcrypt
 passlib
